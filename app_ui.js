@@ -10,7 +10,8 @@ function fmtR(v) {
 function today() { return new Date().toISOString().split('T')[0]; }
 
 document.querySelectorAll('input[type=date]').forEach(function(i){ i.value = today(); });
-document.getElementById('cur-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+var dateEl = document.getElementById('cur-date');
+if(dateEl) dateEl.textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
 
 var CH = {};
 function mkChart(id, cfg) {
@@ -127,7 +128,7 @@ function filtPed(f, btn) {
 async function delPed(id) {
   if(!confirm('Deletar este pedido?')) return;
   showLoading();
-  await supabase.from('pedidos').delete().eq('id', id);
+  await sb.from('pedidos').delete().eq('id', id);
   await loadData();
 }
 
@@ -160,7 +161,7 @@ async function savePed() {
   };
   
   showLoading();
-  await supabase.from('pedidos').insert([obj]);
+  await sb.from('pedidos').insert([obj]);
   closeMo('mo-ped');
   await loadData();
 }
@@ -208,8 +209,8 @@ async function saveEst() {
   else nq = q;
 
   showLoading();
-  await supabase.from('estoque').upsert([{produto: p, quantidade: nq}], {onConflict: 'produto'});
-  await supabase.from('estoque_movimentos').insert([{
+  await sb.from('estoque').upsert([{produto: p, quantidade: nq}], {onConflict: 'produto'});
+  await sb.from('estoque_movimentos').insert([{
     data: document.getElementById('ne-d').value, produto: p, tipo: t, quantidade: q, observacao: document.getElementById('ne-o').value
   }]);
   closeMo('mo-est');
@@ -245,7 +246,7 @@ function renderCaixa() {
 
 async function saveDesp() {
   showLoading();
-  await supabase.from('despesas').insert([{
+  await sb.from('despesas').insert([{
     data: document.getElementById('nd-d').value,
     categoria: document.getElementById('nd-c').value,
     descricao: document.getElementById('nd-ds').value || document.getElementById('nd-c').value,
@@ -259,7 +260,7 @@ async function saveDesp() {
 async function delDesp(id) {
   if(!confirm('Deletar esta despesa?')) return;
   showLoading();
-  await supabase.from('despesas').delete().eq('id', id);
+  await sb.from('despesas').delete().eq('id', id);
   await loadData();
 }
 
