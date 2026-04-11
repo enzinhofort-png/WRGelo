@@ -32,4 +32,4 @@ O projeto está hospedado no **Vercel**. O deploy é feito automaticamente a cad
 
 ## 🏗️ Como usar localmente
 
-Basta abrir o arquivo `index.html` em qualquer navegador moderno.
+Basta abrir o arquivo `index.html` em qualquer navegador moderno. 
