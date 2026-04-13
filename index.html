@@ -46,6 +46,17 @@
     </div>
   </div>
 
+  <!-- PENDING PAGE -->
+  <div class="auth-page" id="pending-page" style="display:none; text-align:center;">
+    <div class="auth-box">
+      <div class="auth-logo-wr"><img id="authlogo-pend" alt="WR" src=""></div>
+      <h1 class="auth-title">Acesso Restrito</h1>
+      <p class="auth-sub" style="margin-top:10px; color:var(--warn); font-weight:600;">Seu cadastro está aguardando liberação do administrador.</p>
+      <div style="font-size:14px; margin:20px 0; color:var(--ice);" id="pending-email"></div>
+      <button class="btn btn-ghost" onclick="handleLogout()" style="width:100%">Sair da Conta</button>
+    </div>
+  </div>
+
   <!-- MAIN APP WRAPPER -->
   <div id="main-app" style="display:none;">
     
@@ -259,6 +270,39 @@
         </div>
       </div>
 
+    <!-- ADMIN PAGE -->
+    <div class="pg" id="pg-admin" style="display:none;">
+      <h2 class="sec-title">Auditoria e Acessos</h2>
+      <div style="display:flex; gap:16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom:10px;">
+        <div class="auth-tab on" id="tab-adm-users" onclick="toggleAdminTab('users')">Usuários</div>
+        <div class="auth-tab" id="tab-adm-logs" onclick="toggleAdminTab('logs')">Auditoria de Logs</div>
+      </div>
+      
+      <div id="adm-users-sec">
+        <div class="panel">
+          <div class="phead"><span class="ptitle">Gestão de Contas</span><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="renderAdmin()">Atualizar</button></div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="tb-adm-users">
+              <thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div id="adm-logs-sec" style="display:none;">
+        <div class="panel">
+          <div class="phead"><span class="ptitle">Rastreio do Sistema</span><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="renderAdmin()">Atualizar</button></div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="tb-adm-logs">
+              <thead><tr><th>Data | Hora</th><th>Tabela | Ação</th><th>Usuário</th><th>Detalhes</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     </div><!-- .main -->
 
     <!-- BOTTOM NAV -->
@@ -268,6 +312,7 @@
       <div class="bn" id="bn-estoque" onclick="goTo('estoque')"><span class="bi">📦</span>Estoque</div>
       <div class="bn" id="bn-caixa" onclick="goTo('caixa')"><span class="bi">💰</span>Caixa</div>
       <div class="bn" id="bn-sim" onclick="goTo('sim')"><span class="bi">📈</span>Sim</div>
+      <div class="bn" id="bn-admin" onclick="goTo('admin')" style="display:none"><span class="bi">⚙️</span>Admin</div>
     </nav>
 
     <!-- MODALS -->

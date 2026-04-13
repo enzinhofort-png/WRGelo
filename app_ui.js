@@ -41,6 +41,7 @@ function goTo(id) {
   if (id === 'estoque')   renderEstoque();
   if (id === 'caixa')     renderCaixa();
   if (id === 'sim')       { simUp(); renderProjChart(undefined, undefined); }
+  if (id === 'admin')     renderAdmin();
 }
 
 // ── UI REFRESHE (DASHBOARD) ─────────────────────────
@@ -130,6 +131,7 @@ function filtPed(f, btn) {
 async function delPed(id) {
   if(!confirm('Deletar este pedido?')) return;
   showLoading();
+  await logAudit('pedidos', 'DELETE', { id });
   await sb.from('pedidos').delete().eq('id', id);
   await loadData();
 }
@@ -164,6 +166,7 @@ async function savePed() {
   
   showLoading();
   await sb.from('pedidos').insert([obj]);
+  await logAudit('pedidos', 'INSERT', obj);
   closeMo('mo-ped');
   await loadData();
 }
@@ -212,9 +215,9 @@ async function saveEst() {
 
   showLoading();
   await sb.from('estoque').upsert([{produto: p, quantidade: nq}], {onConflict: 'produto'});
-  await sb.from('estoque_movimentos').insert([{
-    data: document.getElementById('ne-d').value, produto: p, tipo: t, quantidade: q, observacao: document.getElementById('ne-o').value
-  }]);
+  var movObj = { data: document.getElementById('ne-d').value, produto: p, tipo: t, quantidade: q, observacao: document.getElementById('ne-o').value };
+  await sb.from('estoque_movimentos').insert([movObj]);
+  await logAudit('estoque', 'UPDATE', { produto: p, final: nq, movimento: movObj });
   closeMo('mo-est');
   await loadData();
 }
@@ -229,9 +232,9 @@ async function promptEstoque(k, nm) {
     showLoading();
     ESTOQUE[k] = v; // otimista
     await sb.from('estoque').upsert([{produto: k, quantidade: v}], {onConflict: 'produto'});
-    await sb.from('estoque_movimentos').insert([{
-      data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajuste pelo painel'
-    }]);
+    var movObj = { data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajuste pelo painel' };
+    await sb.from('estoque_movimentos').insert([movObj]);
+    await logAudit('estoque', 'UPDATE_AJUSTE', { produto: k, final: v, diff: diff });
     await loadData();
   }
 }
@@ -265,13 +268,15 @@ function renderCaixa() {
 
 async function saveDesp() {
   showLoading();
-  await sb.from('despesas').insert([{
+  var obj = {
     data: document.getElementById('nd-d').value,
     categoria: document.getElementById('nd-c').value,
     descricao: document.getElementById('nd-ds').value || document.getElementById('nd-c').value,
     valor: parseFloat(document.getElementById('nd-v').value)||0,
     pagamento: document.getElementById('nd-p').value
-  }]);
+  };
+  await sb.from('despesas').insert([obj]);
+  await logAudit('despesas', 'INSERT', obj);
   closeMo('mo-desp');
   await loadData();
 }
@@ -279,6 +284,7 @@ async function saveDesp() {
 async function delDesp(id) {
   if(!confirm('Deletar esta despesa?')) return;
   showLoading();
+  await logAudit('despesas', 'DELETE', {id});
   await sb.from('despesas').delete().eq('id', id);
   await loadData();
 }
@@ -353,3 +359,63 @@ function closeMo(id){ document.getElementById(id).classList.remove('on'); }
 document.querySelectorAll('.ov').forEach(function(ov){
   ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('on'); });
 });
+
+// ── ADMIN & CONFIG ────────────────────
+function toggleAdminTab(tab) {
+  document.getElementById('tab-adm-users').classList.remove('on');
+  document.getElementById('tab-adm-logs').classList.remove('on');
+  document.getElementById('adm-users-sec').style.display = 'none';
+  document.getElementById('adm-logs-sec').style.display = 'none';
+  
+  document.getElementById('tab-adm-'+tab).classList.add('on');
+  document.getElementById('adm-'+tab+'-sec').style.display = 'block';
+}
+
+async function renderAdmin() {
+  showLoading();
+  
+  const { data: profs } = await sb.from('profiles').select('*').order('created_at', {ascending: false});
+  if(profs) {
+    let html = '';
+    profs.forEach(p => {
+      let c = p.status === 'approved' ? 'var(--mint)' : (p.status === 'pending' ? 'var(--warn)' : 'var(--red)');
+      let acts = '';
+      if(p.role !== 'admin') {
+         if(p.status === 'pending' || p.status === 'suspended') acts += `<button class="btn btn-sm btn-ice" onclick="approveUser('${p.id}')">Aprovar</button>`;
+         if(p.status === 'approved') acts += `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="suspendUser('${p.id}')">Suspender</button>`;
+      } else {
+        acts = '<span style="color:var(--mu);font-size:12px">Admin</span>';
+      }
+      
+      html += `<tr><td>${p.email}</td><td>${p.role}</td><td style="color:${c};font-weight:600">${p.status.toUpperCase()}</td><td>${acts}</td></tr>`;
+    });
+    document.getElementById('tb-adm-users').querySelector('tbody').innerHTML = html || '<tr><td colspan="4" style="text-align:center">Nenhum registro</td></tr>';
+  }
+  
+  const { data: logs } = await sb.from('audit_logs').select('*').order('created_at', {ascending: false}).limit(50);
+  if(logs) {
+    let html = '';
+    logs.forEach(l => {
+      let dt = new Date(l.created_at).toLocaleString('pt-BR');
+      let actClr = l.acao === 'DELETE' ? 'var(--red)' : (l.acao === 'UPDATE' ? 'var(--warn)' : 'var(--mint)');
+      html += `<tr><td style="font-size:12px">${dt}</td><td><b>${l.tabela}</b> <br> <span style="color:${actClr};font-size:10px">${l.acao}</span></td><td style="color:var(--ice);font-size:12px">${l.usuario_email}</td><td><pre style="font-size:10px;color:var(--mu);margin:0;max-width:180px;white-space:pre-wrap;word-wrap:break-word;">${JSON.stringify(l.detalhes, null, 2)}</pre></td></tr>`;
+    });
+    document.getElementById('tb-adm-logs').querySelector('tbody').innerHTML = html || '<tr><td colspan="4" style="text-align:center">Nenhum log registrado</td></tr>';
+  }
+
+  hideLoading();
+}
+
+async function approveUser(id) {
+  if(!confirm('Aprovar este usuário? Ele terá acesso total ao sistema.')) return;
+  showLoading();
+  await sb.from('profiles').update({status: 'approved'}).eq('id', id);
+  await renderAdmin();
+}
+
+async function suspendUser(id) {
+  if(!confirm('Suspender este usuário? Ele perderá o acesso imediatamente.')) return;
+  showLoading();
+  await sb.from('profiles').update({status: 'suspended'}).eq('id', id);
+  await renderAdmin();
+}
