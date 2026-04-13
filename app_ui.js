@@ -175,7 +175,7 @@ function renderEstoque() {
     var q = ESTOQUE[it.k]||0;
     var pct = Math.min(100, Math.round(q/it.max*100));
     var cor = pct < 20 ? 'var(--red)' : pct < 40 ? 'var(--warn)' : 'var(--ice)';
-    return '<div class="si"><div class="sico">🧊</div><div class="sinf"><div class="snm">'+it.n+'</div><div class="ssb">'+pct+'% do máximo</div><div class="sbar"><div class="sfil" style="width:'+pct+'%;background:'+cor+'"></div></div></div><div class="sqt" style="color:'+cor+'">'+q+'<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>';
+    return '<div class="si"><div class="sico">🧊</div><div class="sinf"><div class="snm">'+it.n+'</div><div class="ssb">'+pct+'% do máximo</div><div class="sbar"><div class="sfil" style="width:'+pct+'%;background:'+cor+'"></div></div></div><div class="sqt" style="color:'+cor+';cursor:pointer" onclick="promptEstoque(\''+it.k+'\', \''+it.n+'\')" title="Editar estoque">'+q+' ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>';
   }).join('');
 
   var getQtd = (p,m) => PEDIDOS.filter(v => v.produto===p && v.mes===m).reduce((s,v)=>s+v.quantidade,0);
@@ -217,6 +217,23 @@ async function saveEst() {
   }]);
   closeMo('mo-est');
   await loadData();
+}
+
+async function promptEstoque(k, nm) {
+  var newVal = prompt('Qual a quantidade atual de ' + nm + ' em estoque?', ESTOQUE[k]||0);
+  if (newVal !== null && newVal.trim() !== '' && !isNaN(parseInt(newVal))) {
+    var v = Math.max(0, parseInt(newVal));
+    var diff = v - (ESTOQUE[k]||0);
+    if (diff === 0) return;
+    
+    showLoading();
+    ESTOQUE[k] = v; // otimista
+    await sb.from('estoque').upsert([{produto: k, quantidade: v}], {onConflict: 'produto'});
+    await sb.from('estoque_movimentos').insert([{
+      data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajuste pelo painel'
+    }]);
+    await loadData();
+  }
 }
 
 // ── CAIXA / DESPESAS ──────────────────
