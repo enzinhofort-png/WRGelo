@@ -16,18 +16,19 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Ativar RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Política: Usuário autenticado pode ler SEU PRÓPRIO perfil
-CREATE POLICY "user_read_own_profile" ON profiles
-  FOR SELECT TO authenticated USING (auth.uid() = id);
+-- Política: Todos os usuários logados podem LER os perfis (evita recursão)
+DROP POLICY IF EXISTS "user_read_own_profile" ON profiles;
+DROP POLICY IF EXISTS "admin_all_profiles" ON profiles;
+DROP POLICY IF EXISTS "allow_read_profiles" ON profiles;
+CREATE POLICY "allow_read_profiles" ON profiles
+  FOR SELECT TO authenticated USING (true);
 
--- Política: Apenas o Administrador pode ler todos os perfis e atualizar status
-CREATE POLICY "admin_all_profiles" ON profiles
-  FOR ALL TO authenticated
+-- Política: Apenas o Administrador pode ATUALIZAR perfis
+DROP POLICY IF EXISTS "admin_update_profiles" ON profiles;
+CREATE POLICY "admin_update_profiles" ON profiles
+  FOR UPDATE TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-  )
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
   );
 
 
@@ -69,11 +70,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Política: Apenas ADMIN pode enxergar os logs
+DROP POLICY IF EXISTS "admin_read_logs" ON audit_logs;
 CREATE POLICY "admin_read_logs" ON audit_logs
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
 
 -- Política: Qualquer usuário Aprovado pode inserir logs (pois o sistema fará automaticamente ao salvar)
+DROP POLICY IF EXISTS "approved_insert_logs" ON audit_logs;
 CREATE POLICY "approved_insert_logs" ON audit_logs
   FOR INSERT TO authenticated
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'));
@@ -90,18 +93,22 @@ DROP POLICY IF EXISTS "auth_all_estoque_mov" ON estoque_movimentos;
 DROP POLICY IF EXISTS "auth_all_despesas" ON despesas;
 
 -- Novas Políticas:
+DROP POLICY IF EXISTS "pedidos_approved_only" ON pedidos;
 CREATE POLICY "pedidos_approved_only" ON pedidos FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'));
 
+DROP POLICY IF EXISTS "estoque_approved_only" ON estoque;
 CREATE POLICY "estoque_approved_only" ON estoque FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'));
 
+DROP POLICY IF EXISTS "est_mov_approved_only" ON estoque_movimentos;
 CREATE POLICY "est_mov_approved_only" ON estoque_movimentos FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'));
 
+DROP POLICY IF EXISTS "despesas_approved_only" ON despesas;
 CREATE POLICY "despesas_approved_only" ON despesas FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.status = 'approved'));
