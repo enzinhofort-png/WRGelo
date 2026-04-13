@@ -111,7 +111,7 @@ html,body{height:100%;overflow-x:hidden;background:var(--bg);color:var(--tx);fon
   background:radial-gradient(circle,rgba(0,180,230,.12),transparent 70%);}
 .kico{font-size:18px;float:right;opacity:.7;}
 .klbl{font-size:9.5px;color:var(--mu);text-transform:uppercase;letter-spacing:.7px;font-weight:600;}
-.kval{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin:5px 0 3px;}
+.kval{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin:5px 0 3px;letter-spacing:-0.5px;}
 .kval.ice{color:var(--ice)}.kval.mint{color:var(--mint)}.kval.red{color:var(--red)}.kval.warn{color:var(--warn)}
 .kdelta{font-size:10px;font-weight:600;}
 .kdelta.up{color:var(--mint)}.kdelta.dn{color:var(--red)}.kdelta.neu{color:var(--mu)}
@@ -208,7 +208,7 @@ input[type=range]::-webkit-slider-thumb{
 .hero-sub{font-size:10px;color:var(--mu);margin-top:2px;}
 .hero-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .hs{background:rgba(0,0,0,.25);border:1px solid var(--bd);border-radius:8px;padding:8px;text-align:center;}
-.hsv{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--ice);}
+.hsv{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--ice);letter-spacing:-0.5px;}
 .hsl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;}
 
 /* ─── STOCK ──────────────────────────── */
@@ -218,7 +218,7 @@ input[type=range]::-webkit-slider-thumb{
 .sinf{flex:1;}
 .snm{font-weight:600;font-size:13px;color:var(--tx);}
 .ssb{font-size:10.5px;color:var(--mu);margin-top:2px;}
-.sqt{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;text-align:right;white-space:nowrap;}
+.sqt{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;text-align:right;white-space:nowrap;letter-spacing:-1px;}
 .sbar{height:3px;background:rgba(255,255,255,.07);border-radius:3px;margin-top:5px;}
 .sfil{height:100%;border-radius:3px;transition:width .5s ease;}
 
@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{
 .sslbl span{color:var(--ice);font-family:'Playfair Display',serif;font-size:13px;}
 .rbox{background:rgba(0,180,230,.06);border:1px solid rgba(0,180,230,.18);border-radius:10px;padding:13px;}
 .rrow{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;font-weight:500;}
-.rrow.tot{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
+.rrow.tot{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;
   margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,180,230,.18);}
 
 /* ─── COST LIST ──────────────────────── */

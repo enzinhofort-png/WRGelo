@@ -59,6 +59,17 @@ function renderDash() {
 
   var elSacos = document.getElementById('h-sacostot');
   if(elSacos) elSacos.textContent = somaQtd;
+  var elEstC = document.getElementById('h-estcount');
+  if(elEstC) elEstC.textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10);
+  var elPeds = document.getElementById('h-peds');
+  if(elPeds) elPeds.textContent = PEDIDOS.length;
+
+  var currentMonthOrders = PEDIDOS.filter(p => !p.is_historico);
+  var elMes = document.getElementById('h-mes');
+  if(elMes) elMes.textContent = currentMonthOrders.length;
+
+  var elFat = document.getElementById('d-fat');
+  if(elFat) elFat.textContent = fmtR(PEDIDOS.reduce((s,p) => s+p.total, 0));
   var elEst = document.getElementById('d-estoque');
   if(elEst) elEst.textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)+' un.';
 
@@ -66,19 +77,33 @@ function renderDash() {
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
   var cliKeys = Object.keys(cliTot);
   
+  var mTotal = { 'Fevereiro': 297, 'Março': 538, 'Abril': 0, 'Maio': 0, 'Junho': 0 };
+  PEDIDOS.forEach(p => { if(!p.is_historico && mTotal[p.mes] !== undefined) mTotal[p.mes] += p.total; });
+
   mkChart('ch-v', {
     type: 'bar',
     data: {
       labels: ['Fevereiro','Março','Abril','Maio','Junho'],
       datasets: [{
         label: 'Vendas (R$)',
-        data: [297, 538, 0, 0, 0], // Você pode calcular o total dinamicamente por mês aqui
+        data: [mTotal['Fevereiro'], mTotal['Março'], mTotal['Abril'], mTotal['Maio'], mTotal['Junho']],
         backgroundColor: ['rgba(0,180,230,0.6)','rgba(0,212,160,0.6)','rgba(0,180,230,0.15)','rgba(0,180,230,0.15)','rgba(0,180,230,0.15)'],
         borderColor: ['rgba(0,180,230,1)','rgba(0,212,160,1)','rgba(0,180,230,0.3)','rgba(0,180,230,0.3)','rgba(0,180,230,0.3)'],
         borderWidth: 2, borderRadius: 6
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: gBase.plugins.tooltip }, scales: gBase.scales }
+    options: { 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { legend: { display: false }, tooltip: gBase.plugins.tooltip }, 
+      scales: gBase.scales,
+      onClick: (e, elements) => {
+        if (elements.length > 0) {
+          const idx = elements[0].index;
+          const lbl = e.chart.data.labels[idx];
+          showChartModal('Mês de ' + lbl, PEDIDOS.filter(p => !p.is_historico && p.mes === lbl));
+        }
+      }
+    }
   });
 
   mkChart('ch-cli', {
@@ -91,7 +116,17 @@ function renderDash() {
         borderColor: '#06101E', borderWidth: 2
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tkc, font: { family: "'Inter',sans-serif", size: 9 }, boxWidth: 10 } }, tooltip: gBase.plugins.tooltip } }
+    options: { 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { legend: { position: 'right', labels: { color: tkc, font: { family: "'Inter',sans-serif", size: 9 }, boxWidth: 10 } }, tooltip: gBase.plugins.tooltip },
+      onClick: (e, elements) => {
+        if(elements.length > 0) {
+           const idx = elements[0].index;
+           const lbl = e.chart.data.labels[idx];
+           showChartModal('Vendas para: ' + lbl, PEDIDOS.filter(p => p.cliente === lbl));
+        }
+      }
+    }
   });
 
   var maxV = Math.max.apply(null, Object.values(cliTot));
@@ -222,21 +257,37 @@ async function saveEst() {
   await loadData();
 }
 
-async function promptEstoque(k, nm) {
-  var newVal = prompt('Qual a quantidade atual de ' + nm + ' em estoque?', ESTOQUE[k]||0);
-  if (newVal !== null && newVal.trim() !== '' && !isNaN(parseInt(newVal))) {
-    var v = Math.max(0, parseInt(newVal));
-    var diff = v - (ESTOQUE[k]||0);
-    if (diff === 0) return;
-    
-    showLoading();
-    ESTOQUE[k] = v; // otimista
-    await sb.from('estoque').upsert([{produto: k, quantidade: v}], {onConflict: 'produto'});
-    var movObj = { data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajuste pelo painel' };
-    await sb.from('estoque_movimentos').insert([movObj]);
-    await logAudit('estoque', 'UPDATE_AJUSTE', { produto: k, final: v, diff: diff });
-    await loadData();
-  }
+let _promptEstData = null;
+function promptEstoque(k, nm) {
+  _promptEstData = { k, nm };
+  document.getElementById('pmt-desc').textContent = `Insira a nova quantidade exata em estoque para ${nm}:`;
+  document.getElementById('pmt-val').value = ESTOQUE[k] || 0;
+  openMo('mo-custom-prompt');
+}
+
+function closeCustomPrompt() {
+  closeMo('mo-custom-prompt');
+}
+
+function confirmCustomPrompt() {
+  const vStr = document.getElementById('pmt-val').value;
+  if (!vStr || vStr.trim() === '' || isNaN(parseInt(vStr))) return;
+  const v = Math.max(0, parseInt(vStr));
+  const k = _promptEstData.k;
+  const diff = v - (ESTOQUE[k]||0);
+  if (diff === 0) { closeCustomPrompt(); return; }
+  
+  closeCustomPrompt();
+  showLoading();
+  ESTOQUE[k] = v; // otimista
+  sb.from('estoque').upsert([{produto: k, quantidade: v}], {onConflict: 'produto'}).then(() => {
+    var movObj = { data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajustada pelo painel visual' };
+    sb.from('estoque_movimentos').insert([movObj]).then(() => {
+      logAudit('estoque', 'UPDATE_AJUSTE', { produto: k, final: v, diff: diff }).then(() => {
+        loadData();
+      });
+    });
+  });
 }
 
 // ── CAIXA / DESPESAS ──────────────────
@@ -359,6 +410,22 @@ function closeMo(id){ document.getElementById(id).classList.remove('on'); }
 document.querySelectorAll('.ov').forEach(function(ov){
   ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('on'); });
 });
+
+// ── DRILL-DOWN HELPER ─────────────────
+function showChartModal(title, orders) {
+  document.getElementById('mc-title').textContent = title;
+  const tbody = document.getElementById('tb-chart-details').querySelector('tbody');
+  
+  if (orders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:15px">Sem pedidos listados.</td></tr>';
+  } else {
+    tbody.innerHTML = orders.map(function(v){
+      return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span> (${v.quantidade})</td><td style="color:var(--mint);font-weight:700">${fmtR(v.total)}</td></tr>`;
+    }).join('');
+  }
+  
+  openMo('mo-chart-details');
+}
 
 // ── ADMIN & CONFIG ────────────────────
 function toggleAdminTab(tab) {
