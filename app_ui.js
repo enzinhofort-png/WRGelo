@@ -56,8 +56,10 @@ function renderDash() {
   
   var somaQtd = PEDIDOS.reduce((acc, curr) => acc + curr.quantidade, 0);
 
-  document.getElementById('h-sacos').textContent = somaQtd;
-  document.getElementById('d-estoque').textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)+' un.';
+  var elSacos = document.getElementById('h-sacostot');
+  if(elSacos) elSacos.textContent = somaQtd;
+  var elEst = document.getElementById('d-estoque');
+  if(elEst) elEst.textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)+' un.';
 
   var cliTot = {};
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
@@ -287,11 +289,16 @@ function simUp() {
   var roi12 = lucro > 0 ? ((lucro*12/saldo)*100).toFixed(1) : 0;
   var marg = bruto > 0 ? ((lucro/bruto)*100).toFixed(1) : 0;
 
-  document.getElementById('sr3').textContent  = fmtR(r3); document.getElementById('sr5').textContent  = fmtR(r5); document.getElementById('sr10').textContent = fmtR(r10);
-  document.getElementById('srb').textContent  = fmtR(bruto); document.getElementById('srcp').textContent = '- '+fmtR(custoProd); document.getElementById('srcf').textContent = '- '+fmtR(cf);
-  document.getElementById('srl').textContent  = fmtR(lucro); document.getElementById('srl').style.color  = lucro >= 0 ? 'var(--mint)' : 'var(--red)';
-  document.getElementById('srbe').textContent = mBe < 9999 ? '~'+mBe+' meses' : 'Sem lucro';
-  document.getElementById('srroi').textContent= roi12+'% a.a.'; document.getElementById('srmg').textContent = marg+'%';
+  var set = (id, val) => { var el = document.getElementById(id); if(el) el.textContent = val; };
+  set('sr3', fmtR(r3)); set('sr5', fmtR(r5)); set('sr10', fmtR(r10));
+  set('srb', fmtR(bruto)); set('srcp', '- '+fmtR(custoProd)); set('srcf', '- '+fmtR(cf));
+  var elLucro = document.getElementById('srl');
+  if(elLucro) {
+    elLucro.textContent = fmtR(lucro);
+    elLucro.style.color = lucro >= 0 ? 'var(--mint)' : 'var(--red)';
+  }
+  set('srbe', mBe < 9999 ? '~'+mBe+' meses' : 'Sem lucro');
+  set('srroi', roi12+'% a.a.'); set('srmg', marg+'%');
 
   if (mBe < 600) {
     var dt = new Date(); dt.setMonth(dt.getMonth() + mBe);
