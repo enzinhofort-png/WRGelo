@@ -308,7 +308,7 @@ function renderCaixa() {
   var media = (297+538)/2;
   var mesesBe = Math.ceil(saldo/media);
   
-  document.getElementById('c-saldo').textContent = fmtR(saldo);
+  document.getElementById('c-saldo').innerHTML = fmtR(saldo);
   document.getElementById('c-be').textContent = '~'+mesesBe+' meses';
   
   mkChart('ch-cx', {
@@ -374,12 +374,12 @@ function simUp() {
   var roi12 = lucro > 0 ? ((lucro*12/saldo)*100).toFixed(1) : 0;
   var marg = bruto > 0 ? ((lucro/bruto)*100).toFixed(1) : 0;
 
-  var set = (id, val) => { var el = document.getElementById(id); if(el) el.textContent = val; };
+  var set = (id, val) => { var el = document.getElementById(id); if(el) el.innerHTML = val; };
   set('sr3', fmtR(r3)); set('sr5', fmtR(r5)); set('sr10', fmtR(r10));
   set('srb', fmtR(bruto)); set('srcp', '- '+fmtR(custoProd)); set('srcf', '- '+fmtR(cf));
   var elLucro = document.getElementById('srl');
   if(elLucro) {
-    elLucro.textContent = fmtR(lucro);
+    elLucro.innerHTML = fmtR(lucro);
     elLucro.style.color = lucro >= 0 ? 'var(--mint)' : 'var(--red)';
   }
   set('srbe', mBe < 9999 ? '~'+mBe+' meses' : 'Sem lucro');
@@ -390,7 +390,7 @@ function simUp() {
     document.getElementById('srbed').textContent = dt.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
   } else { document.getElementById('srbed').textContent = 'Indefinido'; }
 
-  document.getElementById('sc-c').textContent = fmtR(lucro*0.7); document.getElementById('sc-b').textContent = fmtR(lucro); document.getElementById('sc-o').textContent = fmtR(lucro*1.3);
+  document.getElementById('sc-c').innerHTML = fmtR(lucro*0.7); document.getElementById('sc-b').innerHTML = fmtR(lucro); document.getElementById('sc-o').innerHTML = fmtR(lucro*1.3);
   renderProjChart(lucro, saldo);
 }
 
@@ -543,11 +543,20 @@ async function exportarLogsCsv() {
   hideLoading();
 }
 
-function gerarCaixaPDF() {
-  const mesAtual = 'Março'; // Pode ser dinâmico no futuro
+function confirmarGerarPDF() {
+  const mes = document.getElementById('pdf-mes-sel').value;
+  closeMo('mo-pdf-sel');
+  gerarCaixaPDF(mes);
+}
+
+function gerarCaixaPDF(mesAtual) {
   const vendasMes = PEDIDOS.filter(p => p.mes === mesAtual && !p.is_historico);
+  const monthMapping = {
+    '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho',
+    '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
+  };
   const despesasMes = DESPESAS.filter(d => {
-    const m = {'01':'Janeiro','02':'Fevereiro','03':'Março'}[d.data.split('-')[1]];
+    const m = monthMapping[d.data.split('-')[1]];
     return m === mesAtual;
   });
 
@@ -573,7 +582,7 @@ function gerarCaixaPDF() {
         </tr>
       </thead>
       <tbody>
-        ${vendasMes.map(v => `
+        ${vendasMes.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:10px">Nenhuma venda registrada</td></tr>' : vendasMes.map(v => `
           <tr>
             <td style="border: 1px solid #ddd; padding: 8px;">${fmtDate(v.data)}</td>
             <td style="border: 1px solid #ddd; padding: 8px;">${v.cliente}</td>
@@ -583,7 +592,7 @@ function gerarCaixaPDF() {
       </tbody>
     </table>
 
-    <h2>Despesas</h2>
+    <h2 style="margin-top: 30px;">Despesas</h2>
     <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
       <thead>
         <tr style="background: #f0f0f0;">
@@ -593,7 +602,7 @@ function gerarCaixaPDF() {
         </tr>
       </thead>
       <tbody>
-        ${despesasMes.map(d => `
+        ${despesasMes.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:10px">Nenhuma despesa registrada</td></tr>' : despesasMes.map(d => `
           <tr>
             <td style="border: 1px solid #ddd; padding: 8px;">${fmtDate(d.data)}</td>
             <td style="border: 1px solid #ddd; padding: 8px;">${d.categoria}</td>
@@ -620,5 +629,6 @@ function gerarCaixaPDF() {
 
   html2pdf().from(container).set(opt).save();
 }
+
 
 
