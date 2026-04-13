@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -131,7 +132,10 @@
       <div class="pg" id="pg-pedidos">
         <div class="sh">
           <span class="sh-t">Pedidos</span>
-          <button class="btn btn-ice" onclick="openMo('mo-ped')">+ Novo</button>
+          <div>
+            <button class="btn btn-ghost" onclick="openMo('mo-clientes')" style="margin-right:8px;padding:6px 12px">👥 Clientes</button>
+            <button class="btn btn-ice" onclick="openMo('mo-ped')">+ Novo</button>
+          </div>
         </div>
         <div class="tabs" id="ped-tabs">
           <button class="tab on" onclick="filtPed('todos',this)">Todos</button>
@@ -189,7 +193,10 @@
       <div class="pg" id="pg-caixa">
         <div class="sh">
           <span class="sh-t">Caixa & Custos</span>
-          <button class="btn btn-ice" onclick="openMo('mo-desp')">+ Despesa</button>
+          <div>
+            <button class="btn btn-ghost" onclick="gerarCaixaPDF()" style="margin-right:8px;padding:6px 12px">📄 PDF Mês</button>
+            <button class="btn btn-ice" onclick="openMo('mo-desp')">+ Despesa</button>
+          </div>
         </div>
         <div class="kgrid">
           <div class="kcard"><span class="kico">⚠️</span><div class="klbl">Saldo Líquido</div><div class="kval warn" id="c-saldo">—</div><div class="kdelta dn">A recuperar</div></div>
@@ -292,7 +299,7 @@
       
       <div id="adm-logs-sec" style="display:none;">
         <div class="panel">
-          <div class="phead"><span class="ptitle">Rastreio do Sistema</span><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="renderAdmin()">Atualizar</button></div>
+          <div class="phead"><span class="ptitle">Rastreio do Sistema</span><div><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px;margin-right:8px" onclick="exportarLogsCsv()">📥 Baixar CSV/Excel</button><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="renderAdmin()">Atualizar</button></div></div>
           <div class="tbl-wrap">
             <table class="tbl" id="tb-adm-logs">
               <thead><tr><th>Data | Hora</th><th>Tabela | Ação</th><th>Usuário</th><th>Detalhes</th></tr></thead>
@@ -316,7 +323,7 @@
     </nav>
 
     <!-- MODALS -->
-    <div class="ov" id="mo-ped"><div class="modal"><div class="mhandle"></div><h3>🛒 Novo Pedido</h3><div class="fgrid"><div class="fgrp"><label>Data</label><input type="date" id="np-d"></div><div class="fgrp"><label>Cliente</label><select id="np-c"><option>BAR CARECA</option><option>ALEX</option><option>SILAS</option><option>VENDA VAREJO</option><option>ZE-MARIA (CONS.)</option><option>OUTRO</option></select></div><div class="fgrp"><label>Produto</label><select id="np-p" onchange="autoPrc()"><option value="3kg">3kg</option><option value="5kg">5kg</option><option value="10kg">10kg</option></select></div><div class="fgrp"><label>Qtd</label><input type="number" id="np-q" value="5" oninput="calcPed()"></div><div class="fgrp"><label>Unit.</label><input type="number" id="np-u" value="5.00" oninput="calcPed()"></div><div class="fgrp"><label>Total</label><input type="number" id="np-t" readonly></div><div class="fgrp full"><label>Pagamento</label><select id="np-pg"><option>Dinheiro</option><option>Pix</option><option>Cartão</option><option>Consignado</option></select></div></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeMo('mo-ped')">Cancelar</button><button class="btn btn-ice" onclick="savePed()">Salvar</button></div></div></div>
+    <div class="ov" id="mo-ped"><div class="modal"><div class="mhandle"></div><h3>🛒 Novo Pedido</h3><div class="fgrid"><div class="fgrp"><label>Data</label><input type="date" id="np-d"></div><div class="fgrp"><label>Cliente</label><select id="np-c"></select></div><div class="fgrp"><label>Produto</label><select id="np-p" onchange="autoPrc()"><option value="3kg">3kg</option><option value="5kg">5kg</option><option value="10kg">10kg</option></select></div><div class="fgrp"><label>Qtd</label><input type="number" id="np-q" value="5" oninput="calcPed()"></div><div class="fgrp"><label>Unit.</label><input type="number" id="np-u" value="5.00" oninput="calcPed()"></div><div class="fgrp"><label>Total</label><input type="number" id="np-t" readonly></div><div class="fgrp full"><label>Pagamento</label><select id="np-pg"><option>Dinheiro</option><option>Pix</option><option>Cartão</option><option>Consignado</option></select></div></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeMo('mo-ped')">Cancelar</button><button class="btn btn-ice" onclick="savePed()">Salvar</button></div></div></div>
     <div class="ov" id="mo-est"><div class="modal"><div class="mhandle"></div><h3>📦 Atualizar Estoque</h3><div class="fgrid"><div class="fgrp"><label>Produto</label><select id="ne-p"><option value="s3">3kg</option><option value="s5">5kg</option><option value="s10">10kg</option></select></div><div class="fgrp"><label>Tipo</label><select id="ne-t"><option value="e">Entrada</option><option value="s">Saída</option><option value="a">Ajuste</option></select></div><div class="fgrp"><label>Qtd</label><input type="number" id="ne-q" value="100"></div><div class="fgrp"><label>Data</label><input type="date" id="ne-d"></div><div class="fgrp full"><label>Obs</label><input type="text" id="ne-o"></div></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeMo('mo-est')">Cancelar</button><button class="btn btn-ice" onclick="saveEst()">Salvar</button></div></div></div>
     <div class="ov" id="mo-desp"><div class="modal"><div class="mhandle"></div><h3>💰 Lançar Despesa</h3><div class="fgrid"><div class="fgrp"><label>Data</label><input type="date" id="nd-d"></div><div class="fgrp"><label>Categoria</label><select id="nd-c"><option>Sacos</option><option>Folha de Pgto</option><option>Impostos</option><option>Energia</option><option>Água</option><option>Gás</option><option>Combustível</option><option>Marketing</option><option>Manut.</option><option>Outros</option></select></div><div class="fgrp full"><label>Descrição (Obs)</label><input type="text" id="nd-ds"></div><div class="fgrp"><label>Valor (R$)</label><input type="number" id="nd-v"></div><div class="fgrp"><label>Modo de Pgto</label><select id="nd-p"><option>Dinheiro</option><option>Pix</option><option>Cartão</option></select></div></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeMo('mo-desp')">Cancelar</button><button class="btn btn-ice" onclick="saveDesp()">Lançar</button></div></div></div>
 
@@ -324,6 +331,8 @@
     <div class="ov" id="mo-chart-details"><div class="modal"><div class="mhandle"></div><h3 id="mc-title">Detalhamento</h3><div class="tbl-wrap"><table class="tbl" id="tb-chart-details"><thead><tr><th>Data</th><th>Cliente</th><th>Qtd</th><th>Valor</th></tr></thead><tbody></tbody></table></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ice" onclick="closeMo('mo-chart-details')">Fechar Janela</button></div></div></div>
     
     <div class="ov" id="mo-custom-prompt"><div class="modal"><div class="mhandle"></div><h3>Ajustar Quantidade em Estoque</h3><p style="font-size:12px;color:var(--mu);margin-bottom:12px;" id="pmt-desc"></p><div class="fgrid"><div class="fgrp full"><label>Nova Quantidade Total</label><input type="number" id="pmt-val"></div></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeCustomPrompt()">Cancelar</button><button class="btn btn-ice" onclick="confirmCustomPrompt()">Confirmar</button></div></div></div>
+    
+    <div class="ov" id="mo-clientes"><div class="modal"><div class="mhandle"></div><h3>👥 Gerenciar Clientes</h3><div class="fgrid"><div class="fgrp full"><label>Adicionar Novo Cliente</label><div style="display:flex;gap:8px"><input type="text" id="nc-nome" placeholder="Digite o nome..."><button class="btn btn-ice" onclick="saveCliente()">Salvar</button></div></div></div><div class="tbl-wrap" style="margin-top:14px;max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:8px"><table class="tbl"><thead><tr><th>Nome do Cliente</th><th style="width:50px"></th></tr></thead><tbody id="tb-clientes-body"></tbody></table></div><div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeMo('mo-clientes')">Fechar</button></div></div></div>
 
   </div><!-- #main-app -->
 

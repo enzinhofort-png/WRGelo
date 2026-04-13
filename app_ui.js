@@ -1,17 +1,17 @@
-// ── HELPERS ───────────────────────────
 function fmtDate(d) {
   if (!d) return '—';
   var p = d.split('-');
   return p[2]+'/'+p[1]+'/'+p[0];
 }
 function fmtR(v) {
-  return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return 'R$ <span class="num">' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>';
 }
 function today() { return new Date().toISOString().split('T')[0]; }
 
 document.querySelectorAll('input[type=date]').forEach(function(i){ i.value = today(); });
 var dateEl = document.getElementById('cur-date');
 if(dateEl) dateEl.textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+
 
 var CH = {};
 function mkChart(id, cfg) {
@@ -24,8 +24,8 @@ var grd = 'rgba(255,255,255,0.05)';
 var tkc = 'rgba(100,200,240,0.7)';
 var gBase = {
   responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: tkc, font: { family: "'Inter',sans-serif", size: 10 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(7,16,30,.95)', borderColor: 'rgba(0,180,230,.3)', borderWidth: 1 } },
-  scales: { x: { grid: { color: grd }, ticks: { color: tkc, font: { family: "'Inter',sans-serif", size: 10 } } }, y: { grid: { color: grd }, ticks: { color: tkc, font: { family: "'Inter',sans-serif", size: 10 }, callback: function(v){ return 'R$'+v; } } } }
+  plugins: { legend: { labels: { color: tkc, font: { family: "'Space Grotesk',sans-serif", size: 10 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(7,16,30,.95)', borderColor: 'rgba(0,180,230,.3)', borderWidth: 1 } },
+  scales: { x: { grid: { color: grd }, ticks: { color: tkc, font: { family: "'Space Grotesk',sans-serif", size: 10 } } }, y: { grid: { color: grd }, ticks: { color: tkc, font: { family: "'Space Grotesk',sans-serif", size: 10 }, callback: function(v){ return 'R$'+v; } } } }
 };
 
 var CUR = 'dashboard';
@@ -52,30 +52,28 @@ function renderDash() {
     else if (v.produto === '5kg') tots.s5 += v.quantidade;
     else if (v.produto === '10kg') tots.s10 += v.quantidade;
   });
-  // Se quiser incluir históricos no resumo, pode ajustar o filtro
-  var histPeds = PEDIDOS.filter(p => p.is_historico);
   
   var somaQtd = PEDIDOS.reduce((acc, curr) => acc + curr.quantidade, 0);
 
   var elSacos = document.getElementById('h-sacostot');
-  if(elSacos) elSacos.textContent = somaQtd;
+  if(elSacos) elSacos.innerHTML = `<span class="num">${somaQtd}</span>`;
   var elEstC = document.getElementById('h-estcount');
-  if(elEstC) elEstC.textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10);
+  if(elEstC) elEstC.innerHTML = `<span class="num">${(ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)}</span>`;
   var elPeds = document.getElementById('h-peds');
-  if(elPeds) elPeds.textContent = PEDIDOS.length;
+  if(elPeds) elPeds.innerHTML = `<span class="num">${PEDIDOS.length}</span>`;
 
   var currentMonthOrders = PEDIDOS.filter(p => !p.is_historico);
   var elMes = document.getElementById('h-mes');
-  if(elMes) elMes.textContent = currentMonthOrders.length;
+  if(elMes) elMes.innerHTML = `<span class="num">${currentMonthOrders.length}</span>`;
 
   var elFat = document.getElementById('d-fat');
-  if(elFat) elFat.textContent = fmtR(PEDIDOS.reduce((s,p) => s+p.total, 0));
+  if(elFat) elFat.innerHTML = fmtR(PEDIDOS.reduce((s,p) => s+p.total, 0));
   var elEst = document.getElementById('d-estoque');
-  if(elEst) elEst.textContent = (ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)+' un.';
+  if(elEst) elEst.innerHTML = `<span class="num">${(ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)}</span> un.`;
 
   var cliTot = {};
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
-  var cliKeys = Object.keys(cliTot);
+  var cliKeys = Object.keys(cliTot).sort((a,b) => cliTot[b] - cliTot[a]);
   
   var mTotal = { 'Fevereiro': 297, 'Março': 538, 'Abril': 0, 'Maio': 0, 'Junho': 0 };
   PEDIDOS.forEach(p => { if(!p.is_historico && mTotal[p.mes] !== undefined) mTotal[p.mes] += p.total; });
@@ -106,19 +104,21 @@ function renderDash() {
     }
   });
 
+  const colors = ['var(--ice)', 'var(--mint)', 'var(--ice2)', 'var(--warn)', 'var(--red)', 'var(--mu)', '#9b59b6', '#34495e', '#16a085', '#27ae60'];
+
   mkChart('ch-cli', {
     type: 'doughnut',
     data: {
       labels: cliKeys,
       datasets: [{
         data: cliKeys.map(k => cliTot[k]),
-        backgroundColor: ['rgba(0,180,230,.7)','rgba(0,212,160,.7)','rgba(109,213,245,.7)','rgba(240,165,0,.7)','rgba(230,59,90,.5)'],
+        backgroundColor: colors.map(c => c.includes('var') ? (c === 'var(--red)' ? 'rgba(230,59,90,0.7)' : (c === 'var(--ice)' ? 'rgba(0,180,230,0.7)' : (c === 'var(--mint)' ? 'rgba(0,212,160,0.7)' : 'rgba(100,200,240,0.7)'))) : c),
         borderColor: '#06101E', borderWidth: 2
       }]
     },
     options: { 
       responsive: true, maintainAspectRatio: false, 
-      plugins: { legend: { position: 'right', labels: { color: tkc, font: { family: "'Inter',sans-serif", size: 9 }, boxWidth: 10 } }, tooltip: gBase.plugins.tooltip },
+      plugins: { legend: { position: 'right', labels: { color: tkc, font: { family: "'Space Grotesk',sans-serif", size: 9 }, boxWidth: 10 } }, tooltip: gBase.plugins.tooltip },
       onClick: (e, elements) => {
         if(elements.length > 0) {
            const idx = elements[0].index;
@@ -129,25 +129,36 @@ function renderDash() {
     }
   });
 
-  var maxV = Math.max.apply(null, Object.values(cliTot));
-  var clrs = {'BAR CARECA':'var(--ice)','ALEX':'var(--mint)','SILAS':'var(--ice2)','VENDA VAREJO':'var(--warn)'};
-  document.getElementById('d-progs').innerHTML = Object.entries(cliTot).sort((a,b)=>b[1]-a[1]).map(function(e){
-    var pct = Math.round(e[1]/maxV*100);
-    var cl = clrs[e[0]] || 'var(--ice)';
-    return '<div class="prow"><div class="plbl"><span>'+e[0]+'</span><span style="color:'+cl+'">'+fmtR(e[1])+'</span></div><div class="ptrack"><div class="pfil" style="width:'+pct+'%;background:'+cl+'"></div></div></div>';
+  var maxV = Math.max.apply(null, Object.values(cliTot)) || 1;
+  document.getElementById('d-progs').innerHTML = cliKeys.slice(0, 5).map(function(k, i){
+    var pct = Math.round(cliTot[k]/maxV*100);
+    var cl = colors[i % colors.length];
+    return `<div class="prow">
+      <div class="plbl"><span>${k}</span><span style="color:${cl}">${fmtR(cliTot[k])}</span></div>
+      <div class="ptrack"><div class="pfil" style="width:${pct}%;background:${cl}"></div></div>
+    </div>`;
   }).join('');
 
-  var rec = PEDIDOS.slice(0, 8); // Top recentes pois já vieram ordenados
+  var rec = PEDIDOS.slice(0, 8); 
   document.getElementById('d-recentes').innerHTML = rec.map(function(v){
-    return '<tr><td>'+fmtDate(v.data)+'</td><td><span class="bx bx-ice">'+v.cliente.split(' ')[0]+'</span></td><td>'+v.produto+'</td><td style="color:var(--mint);font-weight:700">'+fmtR(v.total)+'</td></tr>';
+    return `<tr><td>${fmtDate(v.data)}</td><td><span class="bx bx-ice">${v.cliente.split(' ')[0]}</span></td><td>${v.produto}</td><td style="color:var(--mint);font-weight:700">${fmtR(v.total)}</td></tr>`;
   }).join('');
 }
 
+
 // ── PEDIDOS ───────────────────────────
 function renderPedidos(f) {
+  // Popular select de clientes
+  const cliSel = document.getElementById('np-c');
+  if(cliSel) {
+    cliSel.innerHTML = CLIENTES.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+    if(CLIENTES.length === 0) cliSel.innerHTML = '<option value="">Cadastre um cliente primeiro</option>';
+  }
+
   var rows = f === 'todos' ? PEDIDOS : f === 'Novo' ? PEDIDOS.filter(p=>!p.is_historico) : PEDIDOS.filter(p=> p.mes === f);
   document.getElementById('p-count').textContent = rows.length + ' reg.';
   var paid = rows.filter(p => p.total > 0);
+
   document.getElementById('p-ticket').textContent = paid.length > 0 ? fmtR(paid.reduce((s,p) => s+p.total,0)/paid.length) : '—';
   
   document.getElementById('p-tbody').innerHTML = rows.map(function(v){
@@ -486,3 +497,128 @@ async function suspendUser(id) {
   await sb.from('profiles').update({status: 'suspended'}).eq('id', id);
   await renderAdmin();
 }
+
+// ── CLIENTES ──────────────────────────
+function renderClientesList() {
+  const tbody = document.getElementById('tb-clientes-body');
+  if(!tbody) return;
+  
+  if (CLIENTES.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:15px">Nenhum cliente cadastrado.</td></tr>';
+  } else {
+    tbody.innerHTML = CLIENTES.map(function(c) {
+      return `<tr>
+        <td>${c.nome}</td>
+        <td><button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="deleteCliente('${c.id}', '${c.nome}')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ── EXPORTS ───────────────────────────
+async function exportarLogsCsv() {
+  showLoading();
+  const { data: logs } = await sb.from('audit_logs').select('*').order('created_at', {ascending: false});
+  if(!logs || logs.length === 0) {
+    hideLoading();
+    return alert('Nenhum log para exportar.');
+  }
+
+  let csv = 'Data;Tabela;Acao;Usuario;Detalhes\n';
+  logs.forEach(l => {
+    const dt = new Date(l.created_at).toLocaleString('pt-BR');
+    const det = JSON.stringify(l.detalhes).replace(/;/g, ',');
+    csv += `${dt};${l.tabela};${l.acao};${l.usuario_email};${det}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `audit_logs_${today()}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  hideLoading();
+}
+
+function gerarCaixaPDF() {
+  const mesAtual = 'Março'; // Pode ser dinâmico no futuro
+  const vendasMes = PEDIDOS.filter(p => p.mes === mesAtual && !p.is_historico);
+  const despesasMes = DESPESAS.filter(d => {
+    const m = {'01':'Janeiro','02':'Fevereiro','03':'Março'}[d.data.split('-')[1]];
+    return m === mesAtual;
+  });
+
+  const totalVendas = vendasMes.reduce((s, p) => s + p.total, 0);
+  const totalDespesas = despesasMes.reduce((s, d) => s + d.valor, 0);
+
+  const container = document.createElement('div');
+  container.style.padding = '40px';
+  container.style.color = '#333';
+  container.style.fontFamily = 'sans-serif';
+  container.innerHTML = `
+    <h1 style="color:#000; border-bottom: 2px solid #000; padding-bottom: 10px;">Fechamento Mensal - WR Gelo</h1>
+    <p><b>Mês:</b> ${mesAtual} 2026</p>
+    <p><b>Data do Relatório:</b> ${new Date().toLocaleDateString('pt-BR')}</p>
+    
+    <h2 style="margin-top: 30px;">Vendas</h2>
+    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+      <thead>
+        <tr style="background: #f0f0f0;">
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Cliente</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${vendasMes.map(v => `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">${fmtDate(v.data)}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${v.cliente}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${fmtR(v.total)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <h2>Despesas</h2>
+    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+      <thead>
+        <tr style="background: #f0f0f0;">
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Categoria</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${despesasMes.map(d => `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">${fmtDate(d.data)}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${d.categoria}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${fmtR(d.valor)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div style="margin-top: 40px; text-align: right; font-size: 18px;">
+      <p><b>Total Vendas:</b> ${fmtR(totalVendas)}</p>
+      <p><b>Total Despesas:</b> - ${fmtR(totalDespesas)}</p>
+      <p style="border-top: 2px solid #000; padding-top: 10px;"><b>Saldo Líquido:</b> ${fmtR(totalVendas - totalDespesas)}</p>
+    </div>
+  `;
+
+  const opt = {
+    margin: 10,
+    filename: `fechamento_${mesAtual}_WRGelo.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().from(container).set(opt).save();
+}
+
+

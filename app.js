@@ -16,6 +16,7 @@ let PEDIDOS = [];
 let ESTOQUE = {s3:0, s5:0, s10:0};
 let EST_HIST = [];
 let DESPESAS = [];
+let CLIENTES = [];
 
 // ── AUTHENTICATION ────────────────────
 let currentUser = null;
@@ -132,12 +133,15 @@ function hideLoading() { document.getElementById('global-loader').classList.remo
 async function loadData() {
   showLoading();
   try {
-    const [peds, est, esth, desp] = await Promise.all([
+    const [peds, est, esth, desp, cli] = await Promise.all([
       sb.from('pedidos').select('*').order('data', {ascending: false}),
       sb.from('estoque').select('*'),
       sb.from('estoque_movimentos').select('*').order('data', {ascending: false}),
-      sb.from('despesas').select('*').order('data', {ascending: false})
+      sb.from('despesas').select('*').order('data', {ascending: false}),
+      sb.from('clientes').select('*').order('nome', {ascending: true})
     ]);
+
+    if (cli.data) CLIENTES = cli.data;
 
     PEDIDOS = peds.data || [];
     EST_HIST = esth.data || [];
@@ -149,9 +153,11 @@ async function loadData() {
     }
 
     renderDash();
+    renderClientesList();
     if(CUR === 'pedidos') renderPedidos('todos');
     if(CUR === 'estoque') renderEstoque();
     if(CUR === 'caixa') renderCaixa();
+
   } catch(err) {
     console.error('Erro ao carregar', err);
     alert('Erro de conexão. Verifique sua internet.');
@@ -171,5 +177,48 @@ async function logAudit(tabela, acao, detalhes) {
   }
 }
 
+async function saveCliente() {
+  const nome = document.getElementById('nc-nome').value.trim();
+  if(!nome) return alert('Digite o nome do cliente.');
+  
+  showLoading();
+  try {
+    const { data, error } = await sb.from('clientes').insert([{ nome }]);
+    if (error) throw error;
+    
+    document.getElementById('nc-nome').value = '';
+    await loadData();
+    if(typeof renderClientesList === 'function') renderClientesList();
+    // Atualiza o select de pedidos se estiver aberto
+    if(typeof renderPedidos === 'function' && CUR === 'pedidos') renderPedidos('todos');
+    
+    await logAudit('clientes', 'INSERT', { nome });
+  } catch(e) {
+    alert('Erro ao salvar cliente.');
+    console.error(e);
+  }
+  hideLoading();
+}
+
+async function deleteCliente(id, nome) {
+  if(!confirm('Excluir cliente "' + nome + '"?')) return;
+  
+  showLoading();
+  try {
+    const { error } = await sb.from('clientes').delete().eq('id', id);
+    if (error) throw error;
+    
+    await loadData();
+    if(typeof renderClientesList === 'function') renderClientesList();
+    
+    await logAudit('clientes', 'DELETE', { nome });
+  } catch(e) {
+    alert('Erro ao excluir cliente.');
+    console.error(e);
+  }
+  hideLoading();
+}
+
 // ── INIT ──────────────────────────────
+
 initAuth();
