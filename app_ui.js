@@ -187,15 +187,20 @@ function renderDash() {
   // Popular select do PDF com meses reais
   const pdfMesSel = document.getElementById('pdf-mes-sel');
   if(pdfMesSel) {
-    pdfMesSel.innerHTML = mesesComVenda.map(m => `<option value="${m}">${m}</option>`).join('');
+    pdfMesSel.innerHTML = `<option value="todos">Todos os Meses</option>` + mesesComVenda.map(m => `<option value="${m}">${m}</option>`).join('');
   }
+
 }
 
 
 // ── PEDIDOS ───────────────────────────
 let editingPedId = null;
+let PED_CUR_MONTH = 'todos';
 
 function renderPedidos(f) {
+  PED_CUR_MONTH = f;
+  const prodFilter = document.getElementById('pf-prod') ? document.getElementById('pf-prod').value : 'todos';
+
   // Dinamizar Tabs de Meses
   const pedTabs = document.getElementById('ped-tabs');
   if(pedTabs) {
@@ -216,6 +221,11 @@ function renderPedidos(f) {
   }
 
   var rows = f === 'todos' ? PEDIDOS : f === 'Novo' ? PEDIDOS.filter(p=>!p.is_historico) : PEDIDOS.filter(p=> p.mes === f);
+  
+  if (prodFilter !== 'todos') {
+    rows = rows.filter(p => p.produto === prodFilter);
+  }
+
   document.getElementById('p-count').textContent = rows.length + ' reg.';
   var paid = rows.filter(p => p.total > 0);
   const totalFaturamento = rows.reduce((s,p) => s+p.total, 0);
@@ -731,7 +741,9 @@ function confirmarGerarPDF() {
 
 function gerarCaixaPDF(mesAtual, clienteAtual) {
   const isGeral = clienteAtual === 'todos';
-  let vendasMes = PEDIDOS.filter(p => p.mes === mesAtual);
+  const isAllMonths = mesAtual === 'todos';
+  let vendasMes = isAllMonths ? PEDIDOS : PEDIDOS.filter(p => p.mes === mesAtual);
+
   
   if(!isGeral) {
     vendasMes = vendasMes.filter(p => p.cliente === clienteAtual);
@@ -742,9 +754,11 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
     '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
   };
   const despesasMes = isGeral ? DESPESAS.filter(d => {
+    if (isAllMonths) return true;
     const m = monthMapping[d.data.split('-')[1]];
     return m === mesAtual;
   }) : [];
+
 
   const totalVendas = vendasMes.reduce((s, p) => s + p.total, 0);
   const totalDespesas = despesasMes.reduce((s, d) => s + d.valor, 0);
@@ -758,7 +772,7 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
 
   container.innerHTML = `
     <h1 style="color:#000; border-bottom: 2px solid #000; padding-bottom: 10px;">${tituloRelatorio}</h1>
-    <p><b>Mês:</b> ${mesAtual} 2026</p>
+    <p><b>Período:</b> ${isAllMonths ? 'Geral (Todos os Meses)' : mesAtual + ' 2026'}</p>
     <p><b>Data do Relatório:</b> ${new Date().toLocaleDateString('pt-BR')}</p>
     
     <h2 style="margin-top: 30px;">Relatório de Vendas</h2>

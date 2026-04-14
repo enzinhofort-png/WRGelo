@@ -136,8 +136,14 @@
       <div class="pg" id="pg-pedidos">
         <div class="sh">
           <span class="sh-t">Pedidos</span>
-          <div>
-            <button class="btn btn-ghost" onclick="openMo('mo-clientes')" style="margin-right:8px;padding:6px 12px">👥 Clientes</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="pf-prod" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;min-width:90px" onchange="renderPedidos(PED_CUR_MONTH)">
+              <option value="todos">Produtos</option>
+              <option value="3kg">3kg</option>
+              <option value="5kg">5kg</option>
+              <option value="10kg">10kg</option>
+            </select>
+            <button class="btn btn-ghost" onclick="openMo('mo-clientes')" style="padding:6px 12px">👥 Clientes</button>
             <button class="btn btn-ice" onclick="openNovoPed()">+ Novo</button>
           </div>
         </div>
