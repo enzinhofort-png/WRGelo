@@ -506,12 +506,19 @@ function renderClientesList() {
   if (CLIENTES.length === 0) {
     tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:15px">Nenhum cliente cadastrado.</td></tr>';
   } else {
-    tbody.innerHTML = CLIENTES.map(function(c) {
+    tbody.innerHTML = CLIENTES.map(function(c){
       return `<tr>
         <td>${c.nome}</td>
         <td><button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="deleteCliente('${c.id}', '${c.nome}')">✕</button></td>
       </tr>`;
     }).join('');
+  }
+
+  // Popular select do PDF também
+  const pdfCliSel = document.getElementById('pdf-cli-sel');
+  if(pdfCliSel) {
+    pdfCliSel.innerHTML = '<option value="todos">Todos os Clientes (Geral)</option>' + 
+      CLIENTES.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
   }
 }
 
@@ -545,20 +552,27 @@ async function exportarLogsCsv() {
 
 function confirmarGerarPDF() {
   const mes = document.getElementById('pdf-mes-sel').value;
+  const cli = document.getElementById('pdf-cli-sel').value;
   closeMo('mo-pdf-sel');
-  gerarCaixaPDF(mes);
+  gerarCaixaPDF(mes, cli);
 }
 
-function gerarCaixaPDF(mesAtual) {
-  const vendasMes = PEDIDOS.filter(p => p.mes === mesAtual);
+function gerarCaixaPDF(mesAtual, clienteAtual) {
+  const isGeral = clienteAtual === 'todos';
+  let vendasMes = PEDIDOS.filter(p => p.mes === mesAtual);
+  
+  if(!isGeral) {
+    vendasMes = vendasMes.filter(p => p.cliente === clienteAtual);
+  }
+
   const monthMapping = {
     '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho',
     '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
   };
-  const despesasMes = DESPESAS.filter(d => {
+  const despesasMes = isGeral ? DESPESAS.filter(d => {
     const m = monthMapping[d.data.split('-')[1]];
     return m === mesAtual;
-  });
+  }) : [];
 
   const totalVendas = vendasMes.reduce((s, p) => s + p.total, 0);
   const totalDespesas = despesasMes.reduce((s, d) => s + d.valor, 0);
@@ -567,12 +581,15 @@ function gerarCaixaPDF(mesAtual) {
   container.style.padding = '40px';
   container.style.color = '#333';
   container.style.fontFamily = 'sans-serif';
+  
+  const tituloRelatorio = isGeral ? 'Fechamento Mensal - Geral' : `Fechamento de Cliente: ${clienteAtual}`;
+
   container.innerHTML = `
-    <h1 style="color:#000; border-bottom: 2px solid #000; padding-bottom: 10px;">Fechamento Mensal - WR Gelo</h1>
+    <h1 style="color:#000; border-bottom: 2px solid #000; padding-bottom: 10px;">${tituloRelatorio}</h1>
     <p><b>Mês:</b> ${mesAtual} 2026</p>
     <p><b>Data do Relatório:</b> ${new Date().toLocaleDateString('pt-BR')}</p>
     
-    <h2 style="margin-top: 30px;">Vendas</h2>
+    <h2 style="margin-top: 30px;">Relatório de Vendas</h2>
     <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
       <thead>
         <tr style="background: #f0f0f0;">
@@ -582,7 +599,7 @@ function gerarCaixaPDF(mesAtual) {
         </tr>
       </thead>
       <tbody>
-        ${vendasMes.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:10px">Nenhuma venda registrada</td></tr>' : vendasMes.map(v => `
+        ${vendasMes.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:10px">Nenhuma venda encontrada para os filtros selecionados.</td></tr>' : vendasMes.map(v => `
           <tr>
             <td style="border: 1px solid #ddd; padding: 8px;">${fmtDate(v.data)}</td>
             <td style="border: 1px solid #ddd; padding: 8px;">${v.cliente}</td>
@@ -592,7 +609,8 @@ function gerarCaixaPDF(mesAtual) {
       </tbody>
     </table>
 
-    <h2 style="margin-top: 30px;">Despesas</h2>
+    ${isGeral ? `
+    <h2 style="margin-top: 30px;">Relatório de Despesas</h2>
     <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
       <thead>
         <tr style="background: #f0f0f0;">
@@ -611,17 +629,18 @@ function gerarCaixaPDF(mesAtual) {
         `).join('')}
       </tbody>
     </table>
+    ` : ''}
 
     <div style="margin-top: 40px; text-align: right; font-size: 18px;">
       <p><b>Total Vendas:</b> ${fmtR(totalVendas)}</p>
-      <p><b>Total Despesas:</b> - ${fmtR(totalDespesas)}</p>
+      ${isGeral ? `<p><b>Total Despesas:</b> - ${fmtR(totalDespesas)}</p>` : ''}
       <p style="border-top: 2px solid #000; padding-top: 10px;"><b>Saldo Líquido:</b> ${fmtR(totalVendas - totalDespesas)}</p>
     </div>
   `;
 
   const opt = {
     margin: 10,
-    filename: `fechamento_${mesAtual}_WRGelo.pdf`,
+    filename: isGeral ? `Fechamento_Geral_${mesAtual}.pdf` : `Fechamento_${clienteAtual.replace(/\s+/g, '_')}_${mesAtual}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
