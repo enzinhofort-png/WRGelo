@@ -165,6 +165,8 @@ function renderDash() {
 
 
 // ── PEDIDOS ───────────────────────────
+let editingPedId = null;
+
 function renderPedidos(f) {
   // Dinamizar Tabs de Meses
   const pedTabs = document.getElementById('ped-tabs');
@@ -195,15 +197,53 @@ function renderPedidos(f) {
   document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(totalFaturamento/paid.length) : '—';
   
   document.getElementById('p-tbody').innerHTML = rows.map(function(v){
-    var btn = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')">✕</button>`;
-    return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span></td><td>${v.quantidade}</td><td style="color:${v.total>0?'var(--mint)':'var(--mu)'}">${fmtR(v.total)}</td><td><span class="bx bx-${v.mes==='Março'?'mint':'ice'}">${v.mes}</span></td><td>${!v.is_historico?btn:''}</td></tr>`;
+    var btnDel = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')" title="Excluir">✕</button>`;
+    var btnEdit = `<button class="btn btn-sm" style="background:rgba(0,180,230,.15);color:var(--ice);border:none;margin-right:4px" onclick="editPed('${v.id}')" title="Editar">✎</button>`;
+    
+    // Permitir editar qualquer um, mas excluir apenas os novos (não históricos)
+    var actions = btnEdit + (!v.is_historico ? btnDel : '');
+    
+    return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span></td><td>${v.quantidade}</td><td style="color:${v.total>0?'var(--mint)':'var(--mu)'}">${fmtR(v.total)}</td><td><span class="bx bx-${v.mes==='Março'?'mint':'ice'}">${v.mes}</span></td><td>${actions}</td></tr>`;
   }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--mu);padding:20px">Nenhum registro.</td></tr>';
 }
 
 function filtPed(f, btn) {
   document.querySelectorAll('#ped-tabs .tab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
+  if(btn) btn.classList.add('on');
   renderPedidos(f);
+}
+
+function openNovoPed() {
+  editingPedId = null;
+  document.getElementById('ped-mo-title').textContent = '🛒 Novo Pedido';
+  
+  // Resetar campos
+  document.getElementById('np-d').value = new Date().toISOString().split('T')[0];
+  document.getElementById('np-q').value = 5;
+  document.getElementById('np-u').value = 3.5;
+  document.getElementById('np-t').value = 17.5;
+  document.getElementById('np-p').value = '3kg';
+  document.getElementById('np-pg').value = 'Dinheiro';
+  
+  openMo('mo-ped');
+}
+
+function editPed(id) {
+  const p = PEDIDOS.find(x => x.id === id);
+  if(!p) return;
+  
+  editingPedId = id;
+  document.getElementById('ped-mo-title').textContent = '✎ Editar Pedido';
+  
+  document.getElementById('np-d').value = p.data;
+  document.getElementById('np-c').value = p.cliente;
+  document.getElementById('np-p').value = p.produto;
+  document.getElementById('np-q').value = p.quantidade;
+  document.getElementById('np-u').value = (p.total / p.quantidade).toFixed(2);
+  document.getElementById('np-t').value = p.total.toFixed(2);
+  document.getElementById('np-pg').value = p.pagamento || 'Dinheiro';
+  
+  openMo('mo-ped');
 }
 
 // ── API MUTATIONS ─────────────────────
@@ -230,24 +270,44 @@ function calcPed() {
 async function savePed() {
   calcPed();
   var d = document.getElementById('np-d').value;
+  var c = document.getElementById('np-c').value;
+  if(!d || !c) return alert('Data e Cliente obrigatórios.');
+
   var mm = {'01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho','07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
   var mes = mm[d.split('-')[1]] || 'Novo';
   
   var obj = {
-    data: d, cliente: document.getElementById('np-c').value,
+    data: d, cliente: c,
     produto: document.getElementById('np-p').value,
     quantidade: parseFloat(document.getElementById('np-q').value)||0,
     valor_unitario: parseFloat(document.getElementById('np-u').value)||0,
     total: parseFloat(document.getElementById('np-t').value)||0,
     pagamento: document.getElementById('np-pg').value,
-    mes: mes, is_historico: false
+    mes: mes
   };
   
   showLoading();
-  await sb.from('pedidos').insert([obj]);
-  await logAudit('pedidos', 'INSERT', obj);
-  closeMo('mo-ped');
-  await loadData();
+  try {
+    let res;
+    if(editingPedId) {
+      const original = PEDIDOS.find(x => x.id === editingPedId);
+      obj.is_historico = original ? original.is_historico : false;
+      res = await sb.from('pedidos').update(obj).eq('id', editingPedId);
+      await logAudit('pedidos', 'UPDATE', { id: editingPedId, ...obj });
+    } else {
+      obj.is_historico = false;
+      res = await sb.from('pedidos').insert([obj]);
+      await logAudit('pedidos', 'INSERT', obj);
+    }
+    if(res.error) throw res.error;
+    closeMo('mo-ped');
+    await loadData();
+    editingPedId = null;
+  } catch(e) {
+    alert('Erro ao salvar pedido.');
+    console.error(e);
+  }
+  hideLoading();
 }
 
 // ── ESTOQUE ───────────────────────────
