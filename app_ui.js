@@ -66,8 +66,12 @@ function renderDash() {
   var elMes = document.getElementById('h-mes');
   if(elMes) elMes.innerHTML = `<span class="num">${currentMonthOrders.length}</span>`;
 
+  var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
+  var elRecup = document.getElementById('d-recup');
+  if(elRecup) elRecup.innerHTML = fmtR(Math.max(0, TOTAL_INV - totalEntradas));
+  
   var elFat = document.getElementById('d-fat');
-  if(elFat) elFat.innerHTML = fmtR(PEDIDOS.reduce((s,p) => s+p.total, 0));
+  if(elFat) elFat.innerHTML = fmtR(totalEntradas);
   var elEst = document.getElementById('d-estoque');
   if(elEst) elEst.innerHTML = `<span class="num">${(ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)}</span> un.`;
 
@@ -75,8 +79,8 @@ function renderDash() {
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
   var cliKeys = Object.keys(cliTot).sort((a,b) => cliTot[b] - cliTot[a]);
   
-  var mTotal = { 'Fevereiro': 297, 'Março': 538, 'Abril': 0, 'Maio': 0, 'Junho': 0 };
-  PEDIDOS.forEach(p => { if(!p.is_historico && mTotal[p.mes] !== undefined) mTotal[p.mes] += p.total; });
+  var mTotal = { 'Fevereiro': 0, 'Março': 0, 'Abril': 0, 'Maio': 0, 'Junho': 0 };
+  PEDIDOS.forEach(p => { if(mTotal[p.mes] !== undefined) mTotal[p.mes] += p.total; });
 
   mkChart('ch-v', {
     type: 'bar',
@@ -98,7 +102,7 @@ function renderDash() {
         if (elements.length > 0) {
           const idx = elements[0].index;
           const lbl = e.chart.data.labels[idx];
-          showChartModal('Mês de ' + lbl, PEDIDOS.filter(p => !p.is_historico && p.mes === lbl));
+          showChartModal('Mês de ' + lbl, PEDIDOS.filter(p => p.mes === lbl));
         }
       }
     }
@@ -158,8 +162,11 @@ function renderPedidos(f) {
   var rows = f === 'todos' ? PEDIDOS : f === 'Novo' ? PEDIDOS.filter(p=>!p.is_historico) : PEDIDOS.filter(p=> p.mes === f);
   document.getElementById('p-count').textContent = rows.length + ' reg.';
   var paid = rows.filter(p => p.total > 0);
+  const totalFaturamento = rows.reduce((s,p) => s+p.total, 0);
+  const elFatTotal = document.getElementById('p-fat-total');
+  if(elFatTotal) elFatTotal.innerHTML = fmtR(totalFaturamento);
 
-  document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(paid.reduce((s,p) => s+p.total,0)/paid.length) : '—';
+  document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(totalFaturamento/paid.length) : '—';
   
   document.getElementById('p-tbody').innerHTML = rows.map(function(v){
     var btn = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')">✕</button>`;
