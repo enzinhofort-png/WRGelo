@@ -130,7 +130,7 @@ function renderDash() {
     },
     options: { 
       responsive: true, maintainAspectRatio: false, 
-      plugins: { legend: { position: 'right', labels: { color: tkc, font: { family: "'Space Grotesk',sans-serif", size: 9 }, boxWidth: 10 } }, tooltip: gBase.plugins.tooltip },
+      plugins: { legend: { display: false }, tooltip: gBase.plugins.tooltip },
       onClick: (e, elements) => {
         if(elements.length > 0) {
            const idx = elements[0].index;
@@ -141,11 +141,39 @@ function renderDash() {
     }
   });
 
+  // MIX DE PRODUTOS
+  var prodTot = { '3kg': 0, '5kg': 0, '10kg': 0 };
+  PEDIDOS.forEach(p => { if(prodTot[p.produto] !== undefined) prodTot[p.produto] += p.total; });
+  var prodKeys = Object.keys(prodTot);
+
+  mkChart('ch-prod', {
+    type: 'doughnut',
+    data: {
+      labels: prodKeys,
+      datasets: [{
+        data: prodKeys.map(k => prodTot[k]),
+        backgroundColor: ['rgba(0,180,230,0.7)', 'rgba(0,212,160,0.7)', 'rgba(230,59,90,0.7)'],
+        borderColor: '#06101E', borderWidth: 2
+      }]
+    },
+    options: { 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { legend: { position: 'right', labels: { color: tkc, font: { size: 10 } } }, tooltip: gBase.plugins.tooltip },
+      onClick: (e, elements) => {
+        if(elements.length > 0) {
+           const idx = elements[0].index;
+           const lbl = e.chart.data.labels[idx];
+           showChartModal('Vendas do Produto: ' + lbl, PEDIDOS.filter(p => p.produto === lbl));
+        }
+      }
+    }
+  });
+
   var maxV = Math.max.apply(null, Object.values(cliTot)) || 1;
   document.getElementById('d-progs').innerHTML = cliKeys.slice(0, 5).map(function(k, i){
     var pct = Math.round(cliTot[k]/maxV*100);
     var cl = colors[i % colors.length];
-    return `<div class="prow">
+    return `<div class="prow" onclick="showChartModal('Detalhes do Cliente: ${k}', PEDIDOS.filter(p => p.cliente === '${k}'))" style="cursor:pointer">
       <div class="plbl"><span>${k}</span><span style="color:${cl}">${fmtR(cliTot[k])}</span></div>
       <div class="ptrack"><div class="pfil" style="width:${pct}%;background:${cl}"></div></div>
     </div>`;
@@ -545,9 +573,35 @@ function showChartModal(title, orders) {
   document.getElementById('mc-title').textContent = title;
   const tbody = document.getElementById('tb-chart-details').querySelector('tbody');
   
+  // Drill-down Summary Header
+  const q3 = orders.filter(p => p.produto === '3kg').reduce((s, p) => s + p.quantidade, 0);
+  const q5 = orders.filter(p => p.produto === '5kg').reduce((s, p) => s + p.quantidade, 0);
+  const q10 = orders.filter(p => p.produto === '10kg').reduce((s, p) => s + p.quantidade, 0);
+  const totalR = orders.reduce((s, p) => s + p.total, 0);
+
+  // Adicionar summary bar antes da tabela se houver um container, ou via JS
+  let headerHtml = `
+    <div style="display:flex;gap:10px;margin-bottom:15px;background:rgba(0,180,230,0.08);padding:10px;border-radius:8px;border:1px solid rgba(0,180,230,0.2)">
+      <div style="flex:1"><div style="font-size:10px;color:var(--mu)">TOTAL</div><div style="font-size:14px;font-weight:700;color:var(--ice)">${fmtR(totalR)}</div></div>
+      <div style="flex:1"><div style="font-size:10px;color:var(--mu)">3KG</div><div style="font-size:14px;font-weight:700;color:#fff">${q3} <small style="font-weight:400;font-size:10px">un</small></div></div>
+      <div style="flex:1"><div style="font-size:10px;color:var(--mu)">5KG</div><div style="font-size:14px;font-weight:700;color:#fff">${q5} <small style="font-weight:400;font-size:10px">un</small></div></div>
+      <div style="flex:1"><div style="font-size:10px;color:var(--mu)">10KG</div><div style="font-size:14px;font-weight:700;color:#fff">${q10} <small style="font-weight:400;font-size:10px">un</small></div></div>
+    </div>
+  `;
+
   if (orders.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:15px">Sem pedidos listados.</td></tr>';
   } else {
+    // Injetar o header no início do modal se desejado (usando prepend num container fixo)
+    const modalBody = document.getElementById('mo-chart-details').querySelector('.modal');
+    const existingHeader = modalBody.querySelector('.drill-summary');
+    if(existingHeader) existingHeader.remove();
+    
+    const div = document.createElement('div');
+    div.className = 'drill-summary';
+    div.innerHTML = headerHtml;
+    modalBody.querySelector('.tbl-wrap').insertAdjacentElement('beforebegin', div);
+
     tbody.innerHTML = orders.map(function(v){
       return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span> (${v.quantidade})</td><td style="color:var(--mint);font-weight:700">${fmtR(v.total)}</td></tr>`;
     }).join('');
