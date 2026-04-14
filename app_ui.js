@@ -159,7 +159,7 @@ function renderPedidos(f) {
   document.getElementById('p-count').textContent = rows.length + ' reg.';
   var paid = rows.filter(p => p.total > 0);
 
-  document.getElementById('p-ticket').textContent = paid.length > 0 ? fmtR(paid.reduce((s,p) => s+p.total,0)/paid.length) : '—';
+  document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(paid.reduce((s,p) => s+p.total,0)/paid.length) : '—';
   
   document.getElementById('p-tbody').innerHTML = rows.map(function(v){
     var btn = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')">✕</button>`;
@@ -550,7 +550,7 @@ function confirmarGerarPDF() {
 }
 
 function gerarCaixaPDF(mesAtual) {
-  const vendasMes = PEDIDOS.filter(p => p.mes === mesAtual && !p.is_historico);
+  const vendasMes = PEDIDOS.filter(p => p.mes === mesAtual);
   const monthMapping = {
     '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho',
     '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
