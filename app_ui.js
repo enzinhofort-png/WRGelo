@@ -1,3 +1,5 @@
+const NOME_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
 function fmtDate(d) {
   if (!d) return '—';
   var p = d.split('-');
@@ -79,18 +81,24 @@ function renderDash() {
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
   var cliKeys = Object.keys(cliTot).sort((a,b) => cliTot[b] - cliTot[a]);
   
-  var mTotal = { 'Fevereiro': 0, 'Março': 0, 'Abril': 0, 'Maio': 0, 'Junho': 0 };
-  PEDIDOS.forEach(p => { if(mTotal[p.mes] !== undefined) mTotal[p.mes] += p.total; });
+  var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
+  var mTotal = {};
+  mesesComVenda.forEach(m => {
+    mTotal[m] = PEDIDOS.filter(p => p.mes === m).reduce((s, p) => s + p.total, 0);
+  });
+
+  var chartLabels = mesesComVenda;
+  var chartData = mesesComVenda.map(m => mTotal[m]);
 
   mkChart('ch-v', {
     type: 'bar',
     data: {
-      labels: ['Fevereiro','Março','Abril','Maio','Junho'],
+      labels: chartLabels,
       datasets: [{
         label: 'Vendas (R$)',
-        data: [mTotal['Fevereiro'], mTotal['Março'], mTotal['Abril'], mTotal['Maio'], mTotal['Junho']],
-        backgroundColor: ['rgba(0,180,230,0.6)','rgba(0,212,160,0.6)','rgba(0,180,230,0.15)','rgba(0,180,230,0.15)','rgba(0,180,230,0.15)'],
-        borderColor: ['rgba(0,180,230,1)','rgba(0,212,160,1)','rgba(0,180,230,0.3)','rgba(0,180,230,0.3)','rgba(0,180,230,0.3)'],
+        data: chartData,
+        backgroundColor: chartLabels.map((l, i) => i === chartLabels.length - 1 ? 'rgba(0,212,160,0.6)' : 'rgba(0,180,230,0.6)'),
+        borderColor: chartLabels.map((l, i) => i === chartLabels.length - 1 ? 'rgba(0,212,160,1)' : 'rgba(0,180,230,1)'),
         borderWidth: 2, borderRadius: 6
       }]
     },
@@ -152,6 +160,18 @@ function renderDash() {
 
 // ── PEDIDOS ───────────────────────────
 function renderPedidos(f) {
+  // Dinamizar Tabs de Meses
+  const pedTabs = document.getElementById('ped-tabs');
+  if(pedTabs) {
+    const mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
+    let tabsHtml = `<button class="tab ${f==='todos'?'on':''}" onclick="filtPed('todos',this)">Todos</button>`;
+    mesesComVenda.forEach(m => {
+      tabsHtml += `<button class="tab ${f===m?'on':''}" onclick="filtPed('${m}',this)">${m}</button>`;
+    });
+    tabsHtml += `<button class="tab ${f==='Novo'?'on':''}" onclick="filtPed('Novo',this)">Novos</button>`;
+    pedTabs.innerHTML = tabsHtml;
+  }
+
   // Popular select de clientes
   const cliSel = document.getElementById('np-c');
   if(cliSel) {
@@ -234,15 +254,21 @@ function renderEstoque() {
     return '<div class="si"><div class="sico">🧊</div><div class="sinf"><div class="snm">'+it.n+'</div><div class="ssb">'+pct+'% do máximo</div><div class="sbar"><div class="sfil" style="width:'+pct+'%;background:'+cor+'"></div></div></div><div class="sqt" style="color:'+cor+';cursor:pointer" onclick="promptEstoque(\''+it.k+'\', \''+it.n+'\')" title="Editar estoque">'+q+' ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>';
   }).join('');
 
-  var getQtd = (p,m) => PEDIDOS.filter(v => v.produto===p && v.mes===m).reduce((s,v)=>s+v.quantidade,0);
+  var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
+  var datasets = mesesComVenda.map((m, i) => {
+    return {
+      label: m,
+      data: [getQtd('3kg',m), getQtd('5kg',m), getQtd('10kg',m)],
+      backgroundColor: i % 2 === 0 ? 'rgba(0,180,230,.6)' : 'rgba(0,212,160,.6)',
+      borderRadius: 4
+    };
+  });
+
   mkChart('ch-e', {
     type: 'bar',
     data: {
       labels: ['3kg','5kg','10kg'],
-      datasets: [
-        {label:'Fevereiro',data:[getQtd('3kg','Fevereiro'),getQtd('5kg','Fevereiro'),getQtd('10kg','Fevereiro')],backgroundColor:'rgba(0,180,230,.6)',borderRadius:4},
-        {label:'Março',    data:[getQtd('3kg','Março'),    getQtd('5kg','Março'),    getQtd('10kg','Março')],    backgroundColor:'rgba(0,212,160,.6)',borderRadius:4}
-      ]
+      datasets: datasets
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tkc } }, tooltip: gBase.plugins.tooltip }, scales: gBase.scales }
   });
@@ -312,17 +338,35 @@ function confirmCustomPrompt() {
 function renderCaixa() {
   var totDesp = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
   var saldo = TOTAL_INV + totDesp - TOTAL_ENT;
-  var media = (297+538)/2;
-  var mesesBe = Math.ceil(saldo/media);
+  
+  // Cálculo de média mensal dinâmico
+  var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
+  var mTotal = mesesComVenda.map(m => PEDIDOS.filter(p => p.mes === m).reduce((s,p) => s+p.total, 0));
+  var media = mTotal.length > 0 ? mTotal.reduce((a,b) => a+b, 0) / mTotal.length : 0;
+  
+  var mesesBe = media > 0 ? Math.ceil(saldo/media) : '∞';
   
   document.getElementById('c-saldo').innerHTML = fmtR(saldo);
-  document.getElementById('c-be').textContent = '~'+mesesBe+' meses';
+  document.getElementById('c-be').textContent = media > 0 ? '~'+mesesBe+' meses' : 'A definir';
   
+  var elBeSub = document.getElementById('c-be-sub');
+  if(elBeSub) elBeSub.textContent = 'Na média de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mês';
+
   mkChart('ch-cx', {
     type: 'line',
     data: {
-      labels: ['Fev','Mar','Abr','Mai','Jun'],
-      datasets: [{ label: 'Entradas (R$)', data: [297,538,0,0,0], borderColor:'rgba(0,180,230,1)', backgroundColor:'rgba(0,180,230,0.07)', borderWidth:2.5, fill:true, tension:.4, pointRadius:4, pointBackgroundColor:'rgba(0,180,230,1)' }]
+      labels: mesesComVenda.map(m => m.substring(0,3)),
+      datasets: [{ 
+        label: 'Entradas (R$)', 
+        data: mTotal, 
+        borderColor:'rgba(0,180,230,1)', 
+        backgroundColor:'rgba(0,180,230,0.07)', 
+        borderWidth:2.5, 
+        fill:true, 
+        tension:.4, 
+        pointRadius:4, 
+        pointBackgroundColor:'rgba(0,180,230,1)' 
+      }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:gBase.scales }
   });
