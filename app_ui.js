@@ -155,6 +155,12 @@ function renderDash() {
   document.getElementById('d-recentes').innerHTML = rec.map(function(v){
     return `<tr><td>${fmtDate(v.data)}</td><td><span class="bx bx-ice">${v.cliente.split(' ')[0]}</span></td><td>${v.produto}</td><td style="color:var(--mint);font-weight:700">${fmtR(v.total)}</td></tr>`;
   }).join('');
+
+  // Popular select do PDF com meses reais
+  const pdfMesSel = document.getElementById('pdf-mes-sel');
+  if(pdfMesSel) {
+    pdfMesSel.innerHTML = mesesComVenda.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
 }
 
 
@@ -337,7 +343,8 @@ function confirmCustomPrompt() {
 // ── CAIXA / DESPESAS ──────────────────
 function renderCaixa() {
   var totDesp = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
-  var saldo = TOTAL_INV + totDesp - TOTAL_ENT;
+  var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
+  var saldo = TOTAL_INV + totDesp - totalEntradas;
   
   // Cálculo de média mensal dinâmico
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
