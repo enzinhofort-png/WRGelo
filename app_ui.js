@@ -143,7 +143,7 @@ function renderDash() {
 
   // MIX DE PRODUTOS
   var prodTot = { '3kg': 0, '5kg': 0, '10kg': 0 };
-  PEDIDOS.forEach(p => { if(prodTot[p.produto] !== undefined) prodTot[p.produto] += p.total; });
+  PEDIDOS.forEach(p => { if(prodTot[p.produto] !== undefined) prodTot[p.produto] += p.quantidade; });
   var prodKeys = Object.keys(prodTot);
 
   mkChart('ch-prod', {
@@ -158,7 +158,17 @@ function renderDash() {
     },
     options: { 
       responsive: true, maintainAspectRatio: false, 
-      plugins: { legend: { position: 'right', labels: { color: tkc, font: { size: 10 } } }, tooltip: gBase.plugins.tooltip },
+      plugins: { 
+        legend: { position: 'right', labels: { color: tkc, font: { size: 10 } } }, 
+        tooltip: {
+          ...gBase.plugins.tooltip,
+          callbacks: {
+            label: function(ctx) {
+              return ' ' + ctx.label + ': ' + ctx.raw + ' un';
+            }
+          }
+        }
+      },
       onClick: (e, elements) => {
         if(elements.length > 0) {
            const idx = elements[0].index;
