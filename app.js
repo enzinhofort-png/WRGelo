@@ -140,7 +140,7 @@ async function loadData() {
       sb.from('estoque_movimentos').select('*').order('data', {ascending: false}),
       sb.from('despesas').select('*').order('data', {ascending: false}),
       sb.from('clientes').select('*').order('nome', {ascending: true}),
-      sb.from('investimentos').select('*').order('data', {ascending: false})
+      sb.from('investimentos').select('*').order('created_at', {ascending: false})
     ]);
 
     if (cli.data) CLIENTES = cli.data;
@@ -219,7 +219,7 @@ async function editInvest(id) {
   if(!inv) return;
   editingInvestId = id;
   document.getElementById('inv-mo-title').textContent = '✎ Editar Investimento';
-  document.getElementById('ni-d').value = inv.data;
+  document.getElementById('ni-d').value = inv.data || inv.created_at?.split('T')[0];
   document.getElementById('ni-ds').value = inv.descricao;
   document.getElementById('ni-v').value = inv.valor;
   openMo('mo-invest');

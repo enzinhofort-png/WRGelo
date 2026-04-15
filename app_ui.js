@@ -483,6 +483,7 @@ function confirmCustomPrompt() {
 }
 
 // ── CAIXA / DESPESAS ──────────────────
+function renderCaixa() {
   var totalInvest = INVESTIMENTOS.reduce((s,i) => s + Number(i.valor), 0);
   var totalDespesas = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
   var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
@@ -524,7 +525,7 @@ function confirmCustomPrompt() {
     ? '<div style="text-align:center;color:var(--mu);padding:20px">Sem dados de investimento.</div>'
     : INVESTIMENTOS.map(c=>`
       <div class="crow" style="display:flex;justify-content:space-between;align-items:center">
-        <span class="cnm">${fmtDate(c.data)} - ${c.descricao}</span>
+        <span class="cnm">${fmtDate(c.data || c.created_at?.split('T')[0])} - ${c.descricao}</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="cvl">${fmtR(c.valor)}</span>
           <button class="btn btn-sm" style="border:none;background:none;color:var(--ice);padding:0" onclick="editInvest('${c.id}')">✎</button>
