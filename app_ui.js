@@ -68,7 +68,9 @@ function renderDash() {
   var elFat = document.getElementById('d-fat');
   if(elFat) elFat.innerHTML = fmtR(totalVendas);
   
-  var totEstoque = (ESTOQUE.s3 + ESTOQUE.s5 + ESTOQUE.s10 + (ESTOQUE.freezer || 0));
+  var totEstoque = (ESTOQUE.s3.quantidade + ESTOQUE.s3.quantidade_freezer + 
+                    ESTOQUE.s5.quantidade + ESTOQUE.s5.quantidade_freezer + 
+                    ESTOQUE.s10.quantidade + ESTOQUE.s10.quantidade_freezer);
   var elEst = document.getElementById('d-estoque');
   if(elEst) elEst.innerHTML = `<span class="num">${totEstoque}</span> un.`;
 
@@ -369,16 +371,33 @@ var EST_MAX = { s3: 500, s5: 400, s10: 200, freezer: 500 };
 
 function renderEstoque() {
   var itens = [ 
-    {k:'s3',n:'Sacos 3kg', max: EST_MAX.s3, ico:'🧊'}, 
-    {k:'s5',n:'Sacos 5kg', max: EST_MAX.s5, ico:'🧊'}, 
-    {k:'s10',n:'Sacos 10kg', max: EST_MAX.s10, ico:'🧊'},
-    {k:'freezer', n:'Sacos no Freezer', max: EST_MAX.freezer, ico:'❄️'}
+    {k:'s3',n:'Sacos 3kg', ico:'🧊'}, 
+    {k:'s5',n:'Sacos 5kg', ico:'🧊'}, 
+    {k:'s10',n:'Sacos 10kg', ico:'🧊'}
   ];
   document.getElementById('e-lista').innerHTML = itens.map(function(it){
-    var q = ESTOQUE[it.k]||0;
-    var pct = it.max > 0 ? Math.min(100, Math.round(q/it.max*100)) : 0;
+    var e = ESTOQUE[it.k];
+    var q = e.quantidade || 0;
+    var f = e.quantidade_freezer || 0;
+    var m = e.maximo || 500;
+    var total = q + f;
+    var pct = m > 0 ? Math.min(100, Math.round(total/m*100)) : 0;
     var cor = pct < 20 ? 'var(--red)' : pct < 40 ? 'var(--warn)' : 'var(--ice)';
-    return `<div class="si"><div class="sico">${it.ico}</div><div class="sinf"><div class="snm">${it.n}</div><div class="ssb">${q} / ${it.max} un. (${pct}%)</div><div class="sbar"><div class="sfil" style="width:${pct}%;background:${cor}"></div></div></div><div class="sqt" style="color:${cor};cursor:pointer" onclick="promptEstoque('${it.k}', '${it.n}')" title="Editar estoque e máximo">${q} ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>`;
+    
+    return `<div class="si">
+      <div class="sico">${it.ico}</div>
+      <div class="sinf">
+        <div class="snm">${it.n}</div>
+        <div class="ssb">Total: ${total} / Máx: ${m} un. (${pct}%)</div>
+        <div class="ssb" style="font-size:10px;color:var(--mu);margin-top:2px">
+          📦 Estoque: <b>${q}</b> · ❄️ Freezer: <b>${f}</b>
+        </div>
+        <div class="sbar"><div class="sfil" style="width:${pct}%;background:${cor}"></div></div>
+      </div>
+      <div class="sqt" style="color:${cor};cursor:pointer" onclick="promptEstoque('${it.k}', '${it.n}')" title="Editar estoque">
+        ${total} ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span>
+      </div>
+    </div>`;
   }).join('');
 
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
@@ -428,26 +447,13 @@ async function saveEst() {
   await loadData();
 }
 
-let _promptEstData = null;
 function promptEstoque(k, nm) {
   _promptEstData = { k, nm };
-  document.getElementById('pmt-desc').innerHTML = `<b>Quantidade</b> em estoque para ${nm}:`;
-  document.getElementById('pmt-val').value = ESTOQUE[k] || 0;
-  // Criar campo de máximo se não existir
-  var maxEl = document.getElementById('pmt-max');
-  if (!maxEl) {
-    var container = document.getElementById('pmt-val').parentElement;
-    var lbl = document.createElement('label');
-    lbl.style.cssText = 'display:block;margin-top:10px;font-size:13px;color:var(--mu)';
-    lbl.innerHTML = '<b>Estoque máximo suportado:</b>';
-    var inp = document.createElement('input');
-    inp.type = 'number'; inp.id = 'pmt-max'; inp.min = '0';
-    inp.className = document.getElementById('pmt-val').className;
-    inp.style.cssText = 'width:100%;margin-top:4px;';
-    container.appendChild(lbl);
-    container.appendChild(inp);
-  }
-  document.getElementById('pmt-max').value = EST_MAX[k] || 0;
+  const e = ESTOQUE[k];
+  document.getElementById('pmt-desc').innerHTML = `Ajuste as quantidades para <b>${nm}</b>:`;
+  document.getElementById('pmt-val').value = e.quantidade || 0;
+  document.getElementById('pmt-max').value = e.maximo || 500;
+  document.getElementById('pmt-fz').value = e.quantidade_freezer || 0;
   openMo('mo-custom-prompt');
 }
 
@@ -455,31 +461,47 @@ function closeCustomPrompt() {
   closeMo('mo-custom-prompt');
 }
 
-function confirmCustomPrompt() {
-  const vStr = document.getElementById('pmt-val').value;
-  if (!vStr || vStr.trim() === '' || isNaN(parseInt(vStr))) return;
-  const v = Math.max(0, parseInt(vStr));
+async function confirmCustomPrompt() {
   const k = _promptEstData.k;
-  // Atualizar máximo se alterado
-  var maxEl = document.getElementById('pmt-max');
-  if (maxEl) {
-    var newMax = Math.max(1, parseInt(maxEl.value) || EST_MAX[k]);
-    EST_MAX[k] = newMax;
-  }
-  const diff = v - (ESTOQUE[k]||0);
-  if (diff === 0) { closeCustomPrompt(); renderEstoque(); return; }
+  const v = Math.max(0, parseInt(document.getElementById('pmt-val').value) || 0);
+  const m = Math.max(1, parseInt(document.getElementById('pmt-max').value) || 500);
+  const f = Math.max(0, parseInt(document.getElementById('pmt-fz').value) || 0);
   
+  const originalTotal = (ESTOQUE[k].quantidade || 0) + (ESTOQUE[k].quantidade_freezer || 0);
+  const newTotal = v + f;
+  const diff = newTotal - originalTotal;
+
   closeCustomPrompt();
   showLoading();
-  ESTOQUE[k] = v; // otimista
-  sb.from('estoque').upsert([{produto: k, quantidade: v}], {onConflict: 'produto'}).then(() => {
-    var movObj = { data: today(), produto: k, tipo: 'a', quantidade: Math.abs(diff), observacao: 'Ajustada pelo painel visual' };
-    sb.from('estoque_movimentos').insert([movObj]).then(() => {
-      logAudit('estoque', 'UPDATE_AJUSTE', { produto: k, final: v, diff: diff, max: EST_MAX[k] }).then(() => {
-        loadData();
-      });
-    });
-  });
+  
+  try {
+    const { error } = await sb.from('estoque').upsert([{
+      produto: k, 
+      quantidade: v, 
+      quantidade_freezer: f, 
+      maximo: m
+    }], {onConflict: 'produto'});
+    
+    if (error) throw error;
+
+    if (diff !== 0) {
+      const movObj = { 
+        data: today(), 
+        produto: k, 
+        tipo: 'a', 
+        quantidade: Math.abs(diff), 
+        observacao: 'Ajuste geral (Estoque + Freezer)' 
+      };
+      await sb.from('estoque_movimentos').insert([movObj]);
+    }
+    
+    await logAudit('estoque', 'UPDATE_ADJUST', { k, v, f, m });
+    await loadData();
+  } catch(e) {
+    alert('Erro ao atualizar estoque.');
+    console.error(e);
+  }
+  hideLoading();
 }
 
 // ── CAIXA / DESPESAS ──────────────────

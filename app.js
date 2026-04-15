@@ -13,7 +13,11 @@ const TOTAL_INV = 26743.03;
 const TOTAL_ENT = 835; // Fev + Mar
 
 let PEDIDOS = [];
-let ESTOQUE = {s3:0, s5:0, s10:0, freezer:0};
+let ESTOQUE = {
+  s3: { quantidade: 0, quantidade_freezer: 0, maximo: 500 },
+  s5: { quantidade: 0, quantidade_freezer: 0, maximo: 400 },
+  s10: { quantidade: 0, quantidade_freezer: 0, maximo: 200 }
+};
 let EST_HIST = [];
 let DESPESAS = [];
 let INVESTIMENTOS = [];
@@ -150,9 +154,21 @@ async function loadData() {
     DESPESAS = desp.data || [];
     INVESTIMENTOS = inv.data || [];
     
-    ESTOQUE = {s3:0, s5:0, s10:0, freezer:0};
+    ESTOQUE = {
+      s3: { quantidade: 0, quantidade_freezer: 0, maximo: 500 },
+      s5: { quantidade: 0, quantidade_freezer: 0, maximo: 400 },
+      s10: { quantidade: 0, quantidade_freezer: 0, maximo: 200 }
+    };
     if(est.data) {
-      est.data.forEach(e => { ESTOQUE[e.produto] = e.quantidade; });
+      est.data.forEach(e => { 
+        if(ESTOQUE[e.produto]) {
+          ESTOQUE[e.produto] = {
+            quantidade: e.quantidade || 0,
+            quantidade_freezer: e.quantidade_freezer || 0,
+            maximo: e.maximo || (e.produto === 's3' ? 500 : e.produto === 's5' ? 400 : 200)
+          };
+        }
+      });
     }
 
     renderDash();
