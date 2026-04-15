@@ -47,6 +47,13 @@ CREATE TABLE IF NOT EXISTS despesas (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS investimentos (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  descricao TEXT NOT NULL,
+  valor NUMERIC(10,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 2. ROW LEVEL SECURITY (apenas usuários autenticados)
 -- ============================================================
 
@@ -66,16 +73,50 @@ ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "auth_all_despesas" ON despesas FOR ALL
   TO authenticated USING (true) WITH CHECK (true);
 
+ALTER TABLE investimentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth_all_investimentos" ON investimentos FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);
+
 -- 3. ESTOQUE INICIAL
 -- ============================================================
 
 INSERT INTO estoque (produto, quantidade) VALUES
   ('s3', 200),
   ('s5', 150),
-  ('s10', 80)
+  ('s10', 80),
+  ('freezer', 0)
 ON CONFLICT (produto) DO NOTHING;
 
--- 4. SEED — VENDAS HISTÓRICAS
+-- 4. INVESTIMENTO INICIAL (MIGRAÇÃO)
+-- ============================================================
+
+INSERT INTO investimentos (descricao, valor) VALUES
+  ('MÁQUINA DE GELO', 15471),
+  ('SACOS PLÁSTICOS 5KG', 257.82),
+  ('SACOS PLÁSTICOS 10KG (1)', 297.96),
+  ('SACOS PLÁSTICOS 10KG (2)', 595.92),
+  ('MÃO DE OBRA VOLTAGEM', 500),
+  ('FREEZER', 2200),
+  ('FRETE', 150),
+  ('AR CONDICIONADO', 1750),
+  ('MAQUININHA CARTÃO', 209),
+  ('MÃO OBRA LIMPEZA', 100),
+  ('MAT. REFORMA', 293),
+  ('RETIRADA ENTULHO', 30),
+  ('FAIXAS DIVULGAÇÃO', 99.80),
+  ('SACO GELO 3KG', 145.03),
+  ('NOVA SELADORA', 704.78),
+  ('FOLDER DIVULGAÇÃO', 150),
+  ('JANELA', 320.39),
+  ('BASCULHANTE', 197.99),
+  ('BARRA DE FERRO', 186.34),
+  ('MÃO OBRA REFORMA', 600),
+  ('CHIP VIVO', 58),
+  ('MATERIAL CONST.', 376),
+  ('CHAPA PORTÃO', 50),
+  ('NOVO FREEZER', 2000);
+
+-- 5. SEED — VENDAS HISTÓRICAS
 -- ============================================================
 
 INSERT INTO pedidos (data, cliente, produto, quantidade, valor_unitario, total, mes, is_historico) VALUES

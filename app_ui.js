@@ -55,27 +55,27 @@ function renderDash() {
     else if (v.produto === '10kg') tots.s10 += v.quantidade;
   });
   
-  var somaQtd = PEDIDOS.reduce((acc, curr) => acc + curr.quantidade, 0);
+  var totalVendas = PEDIDOS.reduce((s,p) => s+p.total, 0);
+  var totalInvest = INVESTIMENTOS.reduce((s,i) => s + Number(i.valor), 0);
+  var totalDesp = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
+  
+  var elInvest = document.getElementById('d-invest-val');
+  if(elInvest) elInvest.innerHTML = fmtR(totalInvest);
 
-  var elSacos = document.getElementById('h-sacostot');
-  if(elSacos) elSacos.innerHTML = `<span class="num">${somaQtd}</span>`;
-  var elEstC = document.getElementById('h-estcount');
-  if(elEstC) elEstC.innerHTML = `<span class="num">${(ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)}</span>`;
-  var elPeds = document.getElementById('h-peds');
-  if(elPeds) elPeds.innerHTML = `<span class="num">${PEDIDOS.length}</span>`;
-
-  var currentMonthOrders = PEDIDOS.filter(p => !p.is_historico);
-  var elMes = document.getElementById('h-mes');
-  if(elMes) elMes.innerHTML = `<span class="num">${currentMonthOrders.length}</span>`;
-
-  var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
   var elRecup = document.getElementById('d-recup');
-  if(elRecup) elRecup.innerHTML = fmtR(Math.max(0, TOTAL_INV - totalEntradas));
+  if(elRecup) elRecup.innerHTML = fmtR(Math.max(0, (totalInvest + totalDesp) - totalVendas));
   
   var elFat = document.getElementById('d-fat');
-  if(elFat) elFat.innerHTML = fmtR(totalEntradas);
+  if(elFat) elFat.innerHTML = fmtR(totalVendas);
+  
+  var totEstoque = (ESTOQUE.s3 + ESTOQUE.s5 + ESTOQUE.s10 + (ESTOQUE.freezer || 0));
   var elEst = document.getElementById('d-estoque');
-  if(elEst) elEst.innerHTML = `<span class="num">${(ESTOQUE.s3+ESTOQUE.s5+ESTOQUE.s10)}</span> un.`;
+  if(elEst) elEst.innerHTML = `<span class="num">${totEstoque}</span> un.`;
+
+  var elSacos = document.getElementById('h-sacostot');
+  if(elSacos) elSacos.innerHTML = `<span class="num">${PEDIDOS.reduce((acc, curr) => acc + curr.quantidade, 0)}</span>`;
+  var elEstC = document.getElementById('h-estcount');
+  if(elEstC) elEstC.innerHTML = `<span class="num">${totEstoque}</span>`;
 
   var cliTot = {};
   PEDIDOS.forEach(function(v){ cliTot[v.cliente] = (cliTot[v.cliente]||0) + v.total; });
@@ -365,15 +365,20 @@ function getQtd(produto, mes) {
 }
 
 // Máximos editáveis (default)
-var EST_MAX = { s3: 500, s5: 400, s10: 200 };
+var EST_MAX = { s3: 500, s5: 400, s10: 200, freezer: 500 };
 
 function renderEstoque() {
-  var itens = [ {k:'s3',n:'Sacos 3kg', max: EST_MAX.s3}, {k:'s5',n:'Sacos 5kg', max: EST_MAX.s5}, {k:'s10',n:'Sacos 10kg', max: EST_MAX.s10} ];
+  var itens = [ 
+    {k:'s3',n:'Sacos 3kg', max: EST_MAX.s3, ico:'🧊'}, 
+    {k:'s5',n:'Sacos 5kg', max: EST_MAX.s5, ico:'🧊'}, 
+    {k:'s10',n:'Sacos 10kg', max: EST_MAX.s10, ico:'🧊'},
+    {k:'freezer', n:'Sacos no Freezer', max: EST_MAX.freezer, ico:'❄️'}
+  ];
   document.getElementById('e-lista').innerHTML = itens.map(function(it){
     var q = ESTOQUE[it.k]||0;
     var pct = it.max > 0 ? Math.min(100, Math.round(q/it.max*100)) : 0;
     var cor = pct < 20 ? 'var(--red)' : pct < 40 ? 'var(--warn)' : 'var(--ice)';
-    return '<div class="si"><div class="sico">🧊</div><div class="sinf"><div class="snm">'+it.n+'</div><div class="ssb">'+q+' / '+it.max+' un. ('+pct+'%)</div><div class="sbar"><div class="sfil" style="width:'+pct+'%;background:'+cor+'"></div></div></div><div class="sqt" style="color:'+cor+';cursor:pointer" onclick="promptEstoque(\''+it.k+'\', \''+it.n+'\')" title="Editar estoque e máximo">'+q+' ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>';
+    return `<div class="si"><div class="sico">${it.ico}</div><div class="sinf"><div class="snm">${it.n}</div><div class="ssb">${q} / ${it.max} un. (${pct}%)</div><div class="sbar"><div class="sfil" style="width:${pct}%;background:${cor}"></div></div></div><div class="sqt" style="color:${cor};cursor:pointer" onclick="promptEstoque('${it.k}', '${it.n}')" title="Editar estoque e máximo">${q} ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span></div></div>`;
   }).join('');
 
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
@@ -395,12 +400,12 @@ function renderEstoque() {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tkc } }, tooltip: gBase.plugins.tooltip }, scales: gBase.scales }
   });
 
-  var nm = {s3:'Sacos 3kg',s5:'Sacos 5kg',s10:'Sacos 10kg'};
+  var nm = {s3:'Sacos 3kg',s5:'Sacos 5kg',s10:'Sacos 10kg', freezer:'Freezer'};
   document.getElementById('e-count').textContent = EST_HIST.length + ' reg.';
   document.getElementById('e-tbody').innerHTML = EST_HIST.length === 0
     ? '<tr><td colspan="5" style="text-align:center;color:var(--mu);padding:16px;">Sem movimentos.</td></tr>'
     : EST_HIST.map(function(h){
-        return '<tr><td>'+fmtDate(h.data)+'</td><td>'+nm[h.produto]+'</td><td><span class="bx bx-'+(h.tipo==='e'?'mint':h.tipo==='s'?'red':'warn')+'">'+(h.tipo==='e'?'Entrada':h.tipo==='s'?'Saída':'Ajuste')+'</span></td><td>'+h.quantidade+'</td><td style="color:var(--mu)">'+( h.observacao||'—')+'</td></tr>';
+        return '<tr><td>'+fmtDate(h.data)+'</td><td>'+(nm[h.produto]||h.produto)+'</td><td><span class="bx bx-'+(h.tipo==='e'?'mint':h.tipo==='s'?'red':'warn')+'">'+(h.tipo==='e'?'Entrada':h.tipo==='s'?'Saída':'Ajuste')+'</span></td><td>'+h.quantidade+'</td><td style="color:var(--mu)">'+( h.observacao||'—')+'</td></tr>';
       }).join('');
 }
 
@@ -478,10 +483,10 @@ function confirmCustomPrompt() {
 }
 
 // ── CAIXA / DESPESAS ──────────────────
-function renderCaixa() {
-  var totDesp = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
+  var totalInvest = INVESTIMENTOS.reduce((s,i) => s + Number(i.valor), 0);
+  var totalDespesas = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
   var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
-  var saldo = TOTAL_INV + totDesp - totalEntradas;
+  var saldo = (totalInvest + totalDespesas) - totalEntradas;
   
   // Cálculo de média mensal dinâmico
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
@@ -491,7 +496,7 @@ function renderCaixa() {
   var mesesBe = media > 0 ? Math.ceil(saldo/media) : '∞';
   
   document.getElementById('c-saldo').innerHTML = fmtR(saldo);
-  document.getElementById('c-be').textContent = media > 0 ? '~'+mesesBe+' meses' : 'A definir';
+  document.getElementById('c-be').textContent = media > 0 ? (saldo <= 0 ? 'Já atingido!' : '~'+mesesBe+' meses') : 'A definir';
   
   var elBeSub = document.getElementById('c-be-sub');
   if(elBeSub) elBeSub.textContent = 'Na média de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mês';
@@ -515,12 +520,21 @@ function renderCaixa() {
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:gBase.scales }
   });
 
-  const INVEST = [{n:'MÁQUINA DE GELO',v:15471},{n:'SACOS PLÁSTICOS 5KG',v:257.82},{n:'SACOS PLÁSTICOS 10KG (1)',v:297.96},{n:'SACOS PLÁSTICOS 10KG (2)',v:595.92},{n:'MÃO DE OBRA VOLTAGEM',v:500},{n:'FREEZER',v:2200},{n:'FRETE',v:150},{n:'AR CONDICIONADO',v:1750},{n:'MAQUININHA CARTÃO',v:209},{n:'MÃO OBRA LIMPEZA',v:100},{n:'MAT. REFORMA',v:293},{n:'RETIRADA ENTULHO',v:30},{n:'FAIXAS DIVULGAÇÃO',v:99.80},{n:'SACO GELO 3KG',v:145.03},{n:'NOVA SELADORA',v:704.78},{n:'FOLDER DIVULGAÇÃO',v:150},{n:'JANELA',v:320.39},{n:'BASCULHANTE',v:197.99},{n:'BARRA DE FERRO',v:186.34},{n:'MÃO OBRA REFORMA',v:600},{n:'CHIP VIVO',v:58},{n:'MATERIAL CONST.',v:376},{n:'CHAPA PORTÃO',v:50},{n:'NOVO FREEZER',v:2000}];
-  document.getElementById('c-invest').innerHTML = INVEST.map(c=>`<div class="crow"><span class="cnm">${c.n}</span><span class="cvl">${fmtR(c.v)}</span></div>`).join('') + `<div class="crow" style="border-top:1px solid rgba(0,180,230,.2);margin-top:6px;padding-top:6px"><span style="font-weight:700;color:var(--tx)">TOTAL</span><span style="font-family:'Playfair Display',serif;font-size:15px;color:var(--red)">${fmtR(TOTAL_INV)}</span></div>`;
+  document.getElementById('c-invest').innerHTML = INVESTIMENTOS.length === 0 
+    ? '<div style="text-align:center;color:var(--mu);padding:20px">Sem dados de investimento.</div>'
+    : INVESTIMENTOS.map(c=>`
+      <div class="crow" style="display:flex;justify-content:space-between;align-items:center">
+        <span class="cnm">${fmtDate(c.data)} - ${c.descricao}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="cvl">${fmtR(c.valor)}</span>
+          <button class="btn btn-sm" style="border:none;background:none;color:var(--ice);padding:0" onclick="editInvest('${c.id}')">✎</button>
+          <button class="btn btn-sm" style="border:none;background:none;color:var(--red);padding:0" onclick="delInvest('${c.id}')">✕</button>
+        </div>
+      </div>`).join('') + `<div class="crow" style="border-top:1px solid rgba(0,180,230,.2);margin-top:6px;padding-top:6px"><span style="font-weight:700;color:var(--tx)">TOTAL</span><span style="font-family:'Playfair Display',serif;font-size:15px;color:var(--red)">${fmtR(totalInvest)}</span></div>`;
 
   document.getElementById('c-desp-tbody').innerHTML = DESPESAS.length === 0
     ? '<tr><td colspan="4" style="text-align:center;color:var(--mu);padding:18px;">Sem despesas extra.</td></tr>'
-    : DESPESAS.map(d=>`<tr><td>${fmtDate(d.data)}</td><td>${d.descricao}</td><td style="color:var(--red);font-weight:700">${fmtR(d.valor)}</td><td><button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delDesp('${d.id}')">✕</button></td></tr>`).join('');
+    : DESPESAS.map(d=>`<tr><td>${fmtDate(d.data)}</td><td>${d.descricao}</td><td style="color:var(--red);font-weight:700">${fmtR(d.valor)}</td><td><button class="btn btn-sm" style="border:none;background:none;color:var(--ice);margin-right:8px" onclick="editDesp('${d.id}')">✎</button><button class="btn btn-sm" style="border:none;background:none;color:var(--red)" onclick="delDesp('${d.id}')">✕</button></td></tr>`).join('');
 }
 
 async function saveDesp() {

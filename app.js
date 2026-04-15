@@ -13,9 +13,10 @@ const TOTAL_INV = 26743.03;
 const TOTAL_ENT = 835; // Fev + Mar
 
 let PEDIDOS = [];
-let ESTOQUE = {s3:0, s5:0, s10:0};
+let ESTOQUE = {s3:0, s5:0, s10:0, freezer:0};
 let EST_HIST = [];
 let DESPESAS = [];
+let INVESTIMENTOS = [];
 let CLIENTES = [];
 
 // ── AUTHENTICATION ────────────────────
@@ -133,12 +134,13 @@ function hideLoading() { document.getElementById('global-loader').classList.remo
 async function loadData() {
   showLoading();
   try {
-    const [peds, est, esth, desp, cli] = await Promise.all([
+    const [peds, est, esth, desp, cli, inv] = await Promise.all([
       sb.from('pedidos').select('*').order('data', {ascending: false}),
       sb.from('estoque').select('*'),
       sb.from('estoque_movimentos').select('*').order('data', {ascending: false}),
       sb.from('despesas').select('*').order('data', {ascending: false}),
-      sb.from('clientes').select('*').order('nome', {ascending: true})
+      sb.from('clientes').select('*').order('nome', {ascending: true}),
+      sb.from('investimentos').select('*').order('data', {ascending: false})
     ]);
 
     if (cli.data) CLIENTES = cli.data;
@@ -146,8 +148,9 @@ async function loadData() {
     PEDIDOS = peds.data || [];
     EST_HIST = esth.data || [];
     DESPESAS = desp.data || [];
+    INVESTIMENTOS = inv.data || [];
     
-    ESTOQUE = {s3:0, s5:0, s10:0};
+    ESTOQUE = {s3:0, s5:0, s10:0, freezer:0};
     if(est.data) {
       est.data.forEach(e => { ESTOQUE[e.produto] = e.quantidade; });
     }
@@ -189,7 +192,6 @@ async function saveCliente() {
     document.getElementById('nc-nome').value = '';
     await loadData();
     if(typeof renderClientesList === 'function') renderClientesList();
-    // Atualiza o select de pedidos se estiver aberto
     if(typeof renderPedidos === 'function' && CUR === 'pedidos') renderPedidos('todos');
     
     await logAudit('clientes', 'INSERT', { nome });
@@ -200,23 +202,131 @@ async function saveCliente() {
   hideLoading();
 }
 
-async function deleteCliente(id, nome) {
-  if(!confirm('Excluir cliente "' + nome + '"?')) return;
+// ── INVESTIMENTOS ─────────────────────
+let editingInvestId = null;
+
+function openNovoInvestimento() {
+  editingInvestId = null;
+  document.getElementById('inv-mo-title').textContent = '📤 Novo Investimento';
+  document.getElementById('ni-d').value = today();
+  document.getElementById('ni-ds').value = '';
+  document.getElementById('ni-v').value = '';
+  openMo('mo-invest');
+}
+
+async function editInvest(id) {
+  const inv = INVESTIMENTOS.find(x => x.id === id);
+  if(!inv) return;
+  editingInvestId = id;
+  document.getElementById('inv-mo-title').textContent = '✎ Editar Investimento';
+  document.getElementById('ni-d').value = inv.data;
+  document.getElementById('ni-ds').value = inv.descricao;
+  document.getElementById('ni-v').value = inv.valor;
+  openMo('mo-invest');
+}
+
+async function saveInvestimento() {
+  const d = document.getElementById('ni-d').value;
+  const ds = document.getElementById('ni-ds').value.trim();
+  const v = parseFloat(document.getElementById('ni-v').value) || 0;
+  
+  if(!d || !ds || v <= 0) return alert('Preencha todos os campos corretamente.');
   
   showLoading();
   try {
-    const { error } = await sb.from('clientes').delete().eq('id', id);
-    if (error) throw error;
-    
+    let res;
+    const obj = { data: d, descricao: ds, valor: v };
+    if(editingInvestId) {
+      res = await sb.from('investimentos').update(obj).eq('id', editingInvestId);
+      await logAudit('investimentos', 'UPDATE', { id: editingInvestId, ...obj });
+    } else {
+      res = await sb.from('investimentos').insert([obj]);
+      await logAudit('investimentos', 'INSERT', obj);
+    }
+    if(res.error) throw res.error;
+    closeMo('mo-invest');
     await loadData();
-    if(typeof renderClientesList === 'function') renderClientesList();
-    
-    await logAudit('clientes', 'DELETE', { nome });
+    editingInvestId = null;
   } catch(e) {
-    alert('Erro ao excluir cliente.');
+    alert('Erro ao salvar investimento.');
     console.error(e);
   }
   hideLoading();
+}
+
+async function delInvest(id) {
+  if(!confirm('Excluir este investimento?')) return;
+  showLoading();
+  await logAudit('investimentos', 'DELETE', {id});
+  await sb.from('investimentos').delete().eq('id', id);
+  await loadData();
+}
+
+// ── DESPESAS ──────────────────────────
+let editingDespId = null;
+
+function openNovaDespesa() {
+  editingDespId = null;
+  document.getElementById('desp-mo-title').textContent = '💰 Lançar Despesa';
+  document.getElementById('nd-d').value = today();
+  document.getElementById('nd-ds').value = '';
+  document.getElementById('nd-v').value = '';
+  openMo('mo-desp');
+}
+
+async function editDesp(id) {
+  const d = DESPESAS.find(x => x.id === id);
+  if(!d) return;
+  editingDespId = id;
+  document.getElementById('desp-mo-title').textContent = '✎ Editar Despesa';
+  document.getElementById('nd-d').value = d.data;
+  document.getElementById('nd-c').value = d.categoria;
+  document.getElementById('nd-ds').value = d.descricao;
+  document.getElementById('nd-v').value = d.valor;
+  document.getElementById('nd-p').value = d.pagamento;
+  openMo('mo-desp');
+}
+
+async function saveDesp() {
+  const d = document.getElementById('nd-d').value;
+  const v = parseFloat(document.getElementById('nd-v').value) || 0;
+  if(!d || v <= 0) return alert('Preencha a data e o valor.');
+
+  const obj = {
+    data: d,
+    categoria: document.getElementById('nd-c').value,
+    descricao: document.getElementById('nd-ds').value.trim() || document.getElementById('nd-c').value,
+    valor: v,
+    pagamento: document.getElementById('nd-p').value
+  };
+
+  showLoading();
+  try {
+    let res;
+    if(editingDespId) {
+      res = await sb.from('despesas').update(obj).eq('id', editingDespId);
+      await logAudit('despesas', 'UPDATE', { id: editingDespId, ...obj });
+    } else {
+      res = await sb.from('despesas').insert([obj]);
+      await logAudit('despesas', 'INSERT', obj);
+    }
+    if(res.error) throw res.error;
+    closeMo('mo-desp');
+    await loadData();
+    editingDespId = null;
+  } catch(e) {
+    alert('Erro ao salvar despesa.');
+    console.error(e);
+  }
+  hideLoading();
+}
+
+async function delDesp(id) {
+  if(!confirm('Deletar esta despesa?')) return;
+  showLoading();
+  await logAudit('despesas', 'DELETE', {id});
+  await sb.from('despesas').delete().eq('id', id);
+  await loadData();
 }
 
 // ── INIT ──────────────────────────────
