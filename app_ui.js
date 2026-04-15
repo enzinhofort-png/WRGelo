@@ -42,7 +42,7 @@ function goTo(id) {
   if (id === 'pedidos')   renderPedidos('todos');
   if (id === 'estoque')   renderEstoque();
   if (id === 'caixa')     renderCaixa();
-  if (id === 'sim')       { simUp(); renderProjChart(undefined, undefined); }
+  if (id === 'sim')       { simRestore(); simUp(); renderProjChart(undefined, undefined); }
   if (id === 'admin')     renderAdmin();
 }
 
@@ -537,6 +537,24 @@ async function delDesp(id) {
 }
 
 // ── SIMULADOR ─────────────────────────
+// Restaurar último cenário salvo do localStorage
+function simRestore() {
+  try {
+    var saved = localStorage.getItem('wr_sim_cenario');
+    if (saved) {
+      var d = JSON.parse(saved);
+      if (d.sl3 !== undefined)  document.getElementById('sl3').value = d.sl3;
+      if (d.sl5 !== undefined)  document.getElementById('sl5').value = d.sl5;
+      if (d.sl10 !== undefined) document.getElementById('sl10').value = d.sl10;
+      if (d.p3 !== undefined)   document.getElementById('p3').value = d.p3;
+      if (d.p5 !== undefined)   document.getElementById('p5').value = d.p5;
+      if (d.p10 !== undefined)  document.getElementById('p10').value = d.p10;
+      if (d.cfix !== undefined) document.getElementById('cfix').value = d.cfix;
+      if (d.cprod !== undefined) document.getElementById('cprod').value = d.cprod;
+    }
+  } catch(e) { /* ignora erros de parse */ }
+}
+
 function simUp() {
   var q3 = +document.getElementById('sl3').value;
   var q5 = +document.getElementById('sl5').value;
@@ -546,6 +564,18 @@ function simUp() {
   var p10= parseFloat(document.getElementById('p10').value)||9.5;
   var cf = parseFloat(document.getElementById('cfix').value)||0;
   var cp = parseFloat(document.getElementById('cprod').value)||0;
+
+  // Salvar cenário no localStorage
+  try {
+    localStorage.setItem('wr_sim_cenario', JSON.stringify({
+      sl3: q3, sl5: q5, sl10: q10,
+      p3: document.getElementById('p3').value,
+      p5: document.getElementById('p5').value,
+      p10: document.getElementById('p10').value,
+      cfix: document.getElementById('cfix').value,
+      cprod: document.getElementById('cprod').value
+    }));
+  } catch(e) {}
 
   document.getElementById('v3').textContent  = q3; document.getElementById('v5').textContent  = q5; document.getElementById('v10').textContent = q10;
 
