@@ -67,6 +67,31 @@ function renderDash() {
   
   var elFat = document.getElementById('d-fat');
   if(elFat) elFat.innerHTML = fmtR(totalVendas);
+
+  // Cards Hero: Pedidos (Mês Atual) e Mês (Variação)
+  var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
+  var mesAtual = mesesComVenda[mesesComVenda.length - 1];
+  var pedMesAtual = mesAtual ? PEDIDOS.filter(p => p.mes === mesAtual).length : 0;
+  
+  var elPeds = document.getElementById('h-peds');
+  if(elPeds) elPeds.textContent = pedMesAtual;
+
+  var elMes = document.getElementById('h-mes');
+  if(elMes) {
+    var mTotal = mesesComVenda.map(m => PEDIDOS.filter(p => p.mes === m).reduce((s,p) => s+p.total, 0));
+    if(mesesComVenda.length >= 2) {
+      var valAtual = mTotal[mTotal.length - 1];
+      var valAnt = mTotal[mTotal.length - 2];
+      var pct = valAnt > 0 ? ((valAtual / valAnt) - 1) * 100 : 100;
+      var isUp = pct > 0;
+      elMes.innerHTML = (isUp ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(0) + '%';
+      elMes.style.color = isUp ? 'var(--mint)' : 'var(--warn)';
+      elMes.style.fontSize = '20px';
+    } else {
+      elMes.textContent = '—';
+      elMes.style.color = 'var(--ice)';
+    }
+  }
   
   var totEstoque = (ESTOQUE.s3.quantidade + ESTOQUE.s3.quantidade_freezer + 
                     ESTOQUE.s5.quantidade + ESTOQUE.s5.quantidade_freezer + 
@@ -524,11 +549,9 @@ function renderCaixa() {
   var elBeSub = document.getElementById('c-be-sub');
   if(elBeSub) elBeSub.textContent = 'Na média de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mês';
 
-  // Pedidos e Variação Mensal
-  var mesAtual = mesesComVenda[mesesComVenda.length - 1];
-  var pedidosMesAtual = mesAtual ? PEDIDOS.filter(p => p.mes === mesAtual).length : 0;
-  var elPed = document.getElementById('c-ped-mes');
-  if(elPed) elPed.textContent = pedidosMesAtual;
+  // Faturamento e Variação Mensal
+  var elFatTot = document.getElementById('c-fat-total');
+  if(elFatTot) elFatTot.textContent = fmtR(totalEntradas);
   
   var elVar = document.getElementById('c-var-mes');
   if(elVar) {
