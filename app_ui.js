@@ -524,6 +524,27 @@ function renderCaixa() {
   var elBeSub = document.getElementById('c-be-sub');
   if(elBeSub) elBeSub.textContent = 'Na média de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mês';
 
+  // Pedidos e Variação Mensal
+  var mesAtual = mesesComVenda[mesesComVenda.length - 1];
+  var pedidosMesAtual = mesAtual ? PEDIDOS.filter(p => p.mes === mesAtual).length : 0;
+  var elPed = document.getElementById('c-ped-mes');
+  if(elPed) elPed.textContent = pedidosMesAtual;
+  
+  var elVar = document.getElementById('c-var-mes');
+  if(elVar) {
+    if(mesesComVenda.length >= 2) {
+      var valAtual = mTotal[mTotal.length - 1];
+      var valAnt = mTotal[mTotal.length - 2];
+      var pct = valAnt > 0 ? ((valAtual / valAnt) - 1) * 100 : 100;
+      var isUp = pct > 0;
+      elVar.innerHTML = (isUp ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(1) + '%';
+      elVar.className = 'kval ' + (isUp ? 'mint' : 'warn');
+    } else {
+      elVar.textContent = '—';
+      elVar.className = 'kval ice';
+    }
+  }
+
   mkChart('ch-cx', {
     type: 'line',
     data: {
@@ -542,6 +563,28 @@ function renderCaixa() {
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:gBase.scales }
   });
+
+  // Mix de Produtos
+  var p3 = PEDIDOS.filter(p => p.produto === '3kg' || p.produto === 's3').reduce((s,p) => s+p.quantidade, 0);
+  var p5 = PEDIDOS.filter(p => p.produto === '5kg' || p.produto === 's5').reduce((s,p) => s+p.quantidade, 0);
+  var p10 = PEDIDOS.filter(p => p.produto === '10kg' || p.produto === 's10').reduce((s,p) => s+p.quantidade, 0);
+
+  mkChart('ch-cx-mix', {
+    type: 'bar',
+    data: {
+      labels: ['3kg', '5kg', '10kg'],
+      datasets: [{
+        label: 'Quantidade',
+        data: [p3, p5, p10],
+        backgroundColor: ['rgba(0,180,230,0.7)', 'rgba(50,220,150,0.7)', 'rgba(230,59,90,0.7)'],
+        borderColor: ['rgba(0,180,230,1)', 'rgba(50,220,150,1)', 'rgba(230,59,90,1)'],
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:gBase.scales }
+  });
+
 
   document.getElementById('c-invest').innerHTML = INVESTIMENTOS.length === 0 
     ? '<div style="text-align:center;color:var(--mu);padding:20px">Sem dados de investimento.</div>'

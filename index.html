@@ -212,11 +212,19 @@
         </div>
         <div class="kgrid">
           <div class="kcard"><span class="kico">⚠️</span><div class="klbl">Saldo Líquido</div><div class="kval warn" id="c-saldo">—</div><div class="kdelta dn">A recuperar</div></div>
-          <div class="kcard"><span class="kico">🎯</span><div class="klbl">Breakeven</div><div class="kval ice" id="c-be">—</div><div class="kdelta neu">na média</div></div>
+          <div class="kcard"><span class="kico">🎯</span><div class="klbl">Breakeven</div><div class="kval ice" id="c-be">—</div><div class="kdelta neu" id="c-be-sub">na média</div></div>
+          <div class="kcard"><span class="kico">📦</span><div class="klbl">Pedidos do Mês</div><div class="kval ice" id="c-ped-mes">—</div><div class="kdelta neu">Neste mês corrente</div></div>
+          <div class="kcard"><span class="kico">📈</span><div class="klbl">Variação Mensal</div><div class="kval mint" id="c-var-mes">—</div><div class="kdelta neu" id="c-var-sub">vs mês anterior</div></div>
         </div>
-        <div class="panel">
-          <div class="phead"><span class="ptitle">Entradas Mensais</span></div>
-          <div class="pbody"><canvas id="ch-cx" height="190"></canvas></div>
+        <div class="g2">
+          <div class="panel">
+            <div class="phead"><span class="ptitle">Entradas Mensais</span></div>
+            <div class="pbody"><canvas id="ch-cx" height="190"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="phead"><span class="ptitle">Mix de Produtos</span></div>
+            <div class="pbody"><canvas id="ch-cx-mix" height="190"></canvas></div>
+          </div>
         </div>
         <div class="g2">
           <div class="panel">
