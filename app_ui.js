@@ -68,13 +68,11 @@ function renderDash() {
   var elFat = document.getElementById('d-fat');
   if(elFat) elFat.innerHTML = fmtR(totalVendas);
 
-  // Cards Hero: Pedidos (Mês Atual) e Mês (Variação)
+  // Cards Hero: Pedidos (Todos os Meses) e Mês (Variação)
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
-  var mesAtual = mesesComVenda[mesesComVenda.length - 1];
-  var pedMesAtual = mesAtual ? PEDIDOS.filter(p => p.mes === mesAtual).length : 0;
   
   var elPeds = document.getElementById('h-peds');
-  if(elPeds) elPeds.textContent = pedMesAtual;
+  if(elPeds) elPeds.textContent = PEDIDOS.length;
 
   var elMes = document.getElementById('h-mes');
   if(elMes) {
@@ -551,7 +549,7 @@ function renderCaixa() {
 
   // Faturamento e Variação Mensal
   var elFatTot = document.getElementById('c-fat-total');
-  if(elFatTot) elFatTot.textContent = fmtR(totalEntradas);
+  if(elFatTot) elFatTot.innerHTML = fmtR(totalEntradas);
   
   var elVar = document.getElementById('c-var-mes');
   if(elVar) {
