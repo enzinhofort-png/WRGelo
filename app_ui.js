@@ -1,7 +1,7 @@
-const NOME_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+﻿const NOME_MESES = ['Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 function fmtDate(d) {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   var p = d.split('-');
   return p[2]+'/'+p[1]+'/'+p[0];
 }
@@ -46,7 +46,7 @@ function goTo(id) {
   if (id === 'admin')     renderAdmin();
 }
 
-// ── UI REFRESHE (DASHBOARD) ─────────────────────────
+// â”€â”€ UI REFRESHE (DASHBOARD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderDash() {
   var tots = {s3:0,s5:0,s10:0};
   PEDIDOS.filter(p => !p.is_historico).forEach(function(v){
@@ -68,7 +68,7 @@ function renderDash() {
   var elFat = document.getElementById('d-fat');
   if(elFat) elFat.innerHTML = fmtR(totalVendas);
 
-  // Cards Hero: Pedidos (Todos os Meses) e Mês (Variação)
+  // Cards Hero: Pedidos (Todos os Meses) e MÃªs (VariaÃ§Ã£o)
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
   
   var elPeds = document.getElementById('h-peds');
@@ -82,11 +82,11 @@ function renderDash() {
       var valAnt = mTotal[mTotal.length - 2];
       var pct = valAnt > 0 ? ((valAtual / valAnt) - 1) * 100 : 100;
       var isUp = pct > 0;
-      elMes.innerHTML = (isUp ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(0) + '%';
+      elMes.innerHTML = (isUp ? 'â†‘ ' : 'â†“ ') + Math.abs(pct).toFixed(0) + '%';
       elMes.style.color = isUp ? 'var(--mint)' : 'var(--warn)';
       elMes.style.fontSize = '20px';
     } else {
-      elMes.textContent = '—';
+      elMes.textContent = 'â€”';
       elMes.style.color = 'var(--ice)';
     }
   }
@@ -135,7 +135,7 @@ function renderDash() {
         if (elements.length > 0) {
           const idx = elements[0].index;
           const lbl = e.chart.data.labels[idx];
-          showChartModal('Mês de ' + lbl, PEDIDOS.filter(p => p.mes === lbl));
+          showChartModal('MÃªs de ' + lbl, PEDIDOS.filter(p => p.mes === lbl));
         }
       }
     }
@@ -228,7 +228,7 @@ function renderDash() {
 }
 
 
-// ── PEDIDOS ───────────────────────────
+// â”€â”€ PEDIDOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let editingPedId = null;
 let PED_CUR_MONTH = 'todos';
 
@@ -267,16 +267,16 @@ function renderPedidos(f) {
   const elFatTotal = document.getElementById('p-fat-total');
   if(elFatTotal) elFatTotal.innerHTML = fmtR(totalFaturamento);
 
-  document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(totalFaturamento/paid.length) : '—';
+  document.getElementById('p-ticket').innerHTML = paid.length > 0 ? fmtR(totalFaturamento/paid.length) : 'â€”';
   
   document.getElementById('p-tbody').innerHTML = rows.map(function(v){
-    var btnDel = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')" title="Excluir">✕</button>`;
-    var btnEdit = `<button class="btn btn-sm" style="background:rgba(0,180,230,.15);color:var(--ice);border:none;margin-right:4px" onclick="editPed('${v.id}')" title="Editar">✎</button>`;
+    var btnDel = `<button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="delPed('${v.id}')" title="Excluir">âœ•</button>`;
+    var btnEdit = `<button class="btn btn-sm" style="background:rgba(0,180,230,.15);color:var(--ice);border:none;margin-right:4px" onclick="editPed('${v.id}')" title="Editar">âœŽ</button>`;
     
-    // Permitir editar qualquer um, mas excluir apenas os novos (não históricos)
+    // Permitir editar qualquer um, mas excluir apenas os novos (nÃ£o histÃ³ricos)
     var actions = btnEdit + (!v.is_historico ? btnDel : '');
     
-    return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span></td><td>${v.quantidade}</td><td style="color:${v.total>0?'var(--mint)':'var(--mu)'}">${fmtR(v.total)}</td><td><span class="bx bx-${v.mes==='Março'?'mint':'ice'}">${v.mes}</span></td><td>${actions}</td></tr>`;
+    return `<tr><td>${fmtDate(v.data)}</td><td>${v.cliente}</td><td><span class="bx bx-ice">${v.produto}</span></td><td>${v.quantidade}</td><td style="color:${v.total>0?'var(--mint)':'var(--mu)'}">${fmtR(v.total)}</td><td><span class="bx bx-${v.mes==='MarÃ§o'?'mint':'ice'}">${v.mes}</span></td><td>${actions}</td></tr>`;
   }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--mu);padding:20px">Nenhum registro.</td></tr>';
 }
 
@@ -288,7 +288,7 @@ function filtPed(f, btn) {
 
 function openNovoPed() {
   editingPedId = null;
-  document.getElementById('ped-mo-title').textContent = '🛒 Novo Pedido';
+  document.getElementById('ped-mo-title').textContent = 'ðŸ›’ Novo Pedido';
   
   // Resetar campos
   document.getElementById('np-d').value = new Date().toISOString().split('T')[0];
@@ -306,7 +306,7 @@ function editPed(id) {
   if(!p) return;
   
   editingPedId = id;
-  document.getElementById('ped-mo-title').textContent = '✎ Editar Pedido';
+  document.getElementById('ped-mo-title').textContent = 'âœŽ Editar Pedido';
   
   document.getElementById('np-d').value = p.data;
   document.getElementById('np-c').value = p.cliente;
@@ -319,7 +319,7 @@ function editPed(id) {
   openMo('mo-ped');
 }
 
-// ── API MUTATIONS ─────────────────────
+// â”€â”€ API MUTATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function delPed(id) {
   if(!confirm('Deletar este pedido?')) return;
   showLoading();
@@ -344,9 +344,9 @@ async function savePed() {
   calcPed();
   var d = document.getElementById('np-d').value;
   var c = document.getElementById('np-c').value;
-  if(!d || !c) return alert('Data e Cliente obrigatórios.');
+  if(!d || !c) return alert('Data e Cliente obrigatÃ³rios.');
 
-  var mm = {'01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho','07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
+  var mm = {'01':'Janeiro','02':'Fevereiro','03':'MarÃ§o','04':'Abril','05':'Maio','06':'Junho','07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
   var mes = mm[d.split('-')[1]] || 'Novo';
   
   var obj = {
@@ -383,20 +383,20 @@ async function savePed() {
   hideLoading();
 }
 
-// ── ESTOQUE ───────────────────────────
-// Helper: retorna quantidade total vendida de um produto em um mês
+// â”€â”€ ESTOQUE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helper: retorna quantidade total vendida de um produto em um mÃªs
 function getQtd(produto, mes) {
   return PEDIDOS.filter(function(p){ return p.produto === produto && p.mes === mes; }).reduce(function(s,p){ return s + p.quantidade; }, 0);
 }
 
-// Máximos editáveis (default)
+// MÃ¡ximos editÃ¡veis (default)
 var EST_MAX = { s3: 500, s5: 400, s10: 200, freezer: 500 };
 
 function renderEstoque() {
   var itens = [ 
-    {k:'s3',n:'Sacos 3kg', ico:'🧊'}, 
-    {k:'s5',n:'Sacos 5kg', ico:'🧊'}, 
-    {k:'s10',n:'Sacos 10kg', ico:'🧊'}
+    {k:'s3',n:'Sacos 3kg', ico:'ðŸ§Š'}, 
+    {k:'s5',n:'Sacos 5kg', ico:'ðŸ§Š'}, 
+    {k:'s10',n:'Sacos 10kg', ico:'ðŸ§Š'}
   ];
   document.getElementById('e-lista').innerHTML = itens.map(function(it){
     var e = ESTOQUE[it.k];
@@ -411,14 +411,14 @@ function renderEstoque() {
       <div class="sico">${it.ico}</div>
       <div class="sinf">
         <div class="snm">${it.n}</div>
-        <div class="ssb">Total: ${total} / Máx: ${m} un. (${pct}%)</div>
+        <div class="ssb">Total: ${total} / MÃ¡x: ${m} un. (${pct}%)</div>
         <div class="ssb" style="font-size:10px;color:var(--mu);margin-top:2px">
-          📦 Estoque: <b>${q}</b> · ❄️ Freezer: <b>${f}</b>
+          ðŸ“¦ Estoque: <b>${q}</b> Â· â„ï¸ Freezer: <b>${f}</b>
         </div>
         <div class="sbar"><div class="sfil" style="width:${pct}%;background:${cor}"></div></div>
       </div>
       <div class="sqt" style="color:${cor};cursor:pointer" onclick="promptEstoque('${it.k}', '${it.n}')" title="Editar estoque">
-        ${total} ✎<br><span style="font-size:10px;color:var(--mu)">unid.</span>
+        ${total} âœŽ<br><span style="font-size:10px;color:var(--mu)">unid.</span>
       </div>
     </div>`;
   }).join('');
@@ -447,7 +447,7 @@ function renderEstoque() {
   document.getElementById('e-tbody').innerHTML = EST_HIST.length === 0
     ? '<tr><td colspan="5" style="text-align:center;color:var(--mu);padding:16px;">Sem movimentos.</td></tr>'
     : EST_HIST.map(function(h){
-        return '<tr><td>'+fmtDate(h.data)+'</td><td>'+(nm[h.produto]||h.produto)+'</td><td><span class="bx bx-'+(h.tipo==='e'?'mint':h.tipo==='s'?'red':'warn')+'">'+(h.tipo==='e'?'Entrada':h.tipo==='s'?'Saída':'Ajuste')+'</span></td><td>'+h.quantidade+'</td><td style="color:var(--mu)">'+( h.observacao||'—')+'</td></tr>';
+        return '<tr><td>'+fmtDate(h.data)+'</td><td>'+(nm[h.produto]||h.produto)+'</td><td><span class="bx bx-'+(h.tipo==='e'?'mint':h.tipo==='s'?'red':'warn')+'">'+(h.tipo==='e'?'Entrada':h.tipo==='s'?'SaÃ­da':'Ajuste')+'</span></td><td>'+h.quantidade+'</td><td style="color:var(--mu)">'+( h.observacao||'â€”')+'</td></tr>';
       }).join('');
 }
 
@@ -527,27 +527,27 @@ async function confirmCustomPrompt() {
   hideLoading();
 }
 
-// ── CAIXA / DESPESAS ──────────────────
+// â”€â”€ CAIXA / DESPESAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderCaixa() {
   var totalInvest = INVESTIMENTOS.reduce((s,i) => s + Number(i.valor), 0);
   var totalDespesas = DESPESAS.reduce((s,d) => s + Number(d.valor), 0);
   var totalEntradas = PEDIDOS.reduce((s,p) => s+p.total, 0);
   var saldo = (totalInvest + totalDespesas) - totalEntradas;
   
-  // Cálculo de média mensal dinâmico
+  // CÃ¡lculo de mÃ©dia mensal dinÃ¢mico
   var mesesComVenda = NOME_MESES.filter(m => PEDIDOS.some(p => p.mes === m));
   var mTotal = mesesComVenda.map(m => PEDIDOS.filter(p => p.mes === m).reduce((s,p) => s+p.total, 0));
   var media = mTotal.length > 0 ? mTotal.reduce((a,b) => a+b, 0) / mTotal.length : 0;
   
-  var mesesBe = media > 0 ? Math.ceil(saldo/media) : '∞';
+  var mesesBe = media > 0 ? Math.ceil(saldo/media) : 'âˆž';
   
   document.getElementById('c-saldo').innerHTML = fmtR(saldo);
-  document.getElementById('c-be').textContent = media > 0 ? (saldo <= 0 ? 'Já atingido!' : '~'+mesesBe+' meses') : 'A definir';
+  document.getElementById('c-be').textContent = media > 0 ? (saldo <= 0 ? 'JÃ¡ atingido!' : '~'+mesesBe+' meses') : 'A definir';
   
   var elBeSub = document.getElementById('c-be-sub');
-  if(elBeSub) elBeSub.textContent = 'Na média de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mês';
+  if(elBeSub) elBeSub.textContent = 'Na mÃ©dia de ' + (media > 0 ? fmtR(media).replace('R$ ','R$').replace(/<[^>]*>/g, '') : 'R$ 0,00') + '/mÃªs';
 
-  // Faturamento e Variação Mensal
+  // Faturamento e VariaÃ§Ã£o Mensal
   var elFatTot = document.getElementById('c-fat-total');
   if(elFatTot) elFatTot.innerHTML = fmtR(totalEntradas);
   
@@ -558,10 +558,10 @@ function renderCaixa() {
       var valAnt = mTotal[mTotal.length - 2];
       var pct = valAnt > 0 ? ((valAtual / valAnt) - 1) * 100 : 100;
       var isUp = pct > 0;
-      elVar.innerHTML = (isUp ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(1) + '%';
+      elVar.innerHTML = (isUp ? 'â†‘ ' : 'â†“ ') + Math.abs(pct).toFixed(1) + '%';
       elVar.className = 'kval ' + (isUp ? 'mint' : 'warn');
     } else {
-      elVar.textContent = '—';
+      elVar.textContent = 'â€”';
       elVar.className = 'kval ice';
     }
   }
@@ -614,14 +614,14 @@ function renderCaixa() {
         <span class="cnm">${fmtDate(c.data || c.created_at?.split('T')[0])} - ${c.descricao}</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="cvl">${fmtR(c.valor)}</span>
-          <button class="btn btn-sm" style="border:none;background:none;color:var(--ice);padding:0" onclick="editInvest('${c.id}')">✎</button>
-          <button class="btn btn-sm" style="border:none;background:none;color:var(--red);padding:0" onclick="delInvest('${c.id}')">✕</button>
+          <button class="btn btn-sm" style="border:none;background:none;color:var(--ice);padding:0" onclick="editInvest('${c.id}')">âœŽ</button>
+          <button class="btn btn-sm" style="border:none;background:none;color:var(--red);padding:0" onclick="delInvest('${c.id}')">âœ•</button>
         </div>
       </div>`).join('') + `<div class="crow" style="border-top:1px solid rgba(0,180,230,.2);margin-top:6px;padding-top:6px"><span style="font-weight:700;color:var(--tx)">TOTAL</span><span style="font-family:'Playfair Display',serif;font-size:15px;color:var(--red)">${fmtR(totalInvest)}</span></div>`;
 
   document.getElementById('c-desp-tbody').innerHTML = DESPESAS.length === 0
     ? '<tr><td colspan="4" style="text-align:center;color:var(--mu);padding:18px;">Sem despesas extra.</td></tr>'
-    : DESPESAS.map(d=>`<tr><td>${fmtDate(d.data)}</td><td>${d.descricao}</td><td style="color:var(--red);font-weight:700">${fmtR(d.valor)}</td><td><button class="btn btn-sm" style="border:none;background:none;color:var(--ice);margin-right:8px" onclick="editDesp('${d.id}')">✎</button><button class="btn btn-sm" style="border:none;background:none;color:var(--red)" onclick="delDesp('${d.id}')">✕</button></td></tr>`).join('');
+    : DESPESAS.map(d=>`<tr><td>${fmtDate(d.data)}</td><td>${d.descricao}</td><td style="color:var(--red);font-weight:700">${fmtR(d.valor)}</td><td><button class="btn btn-sm" style="border:none;background:none;color:var(--ice);margin-right:8px" onclick="editDesp('${d.id}')">âœŽ</button><button class="btn btn-sm" style="border:none;background:none;color:var(--red)" onclick="delDesp('${d.id}')">âœ•</button></td></tr>`).join('');
 }
 
 async function saveDesp() {
@@ -647,8 +647,8 @@ async function delDesp(id) {
   await loadData();
 }
 
-// ── SIMULADOR ─────────────────────────
-// Restaurar último cenário salvo do localStorage
+// â”€â”€ SIMULADOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Restaurar Ãºltimo cenÃ¡rio salvo do localStorage
 function simRestore() {
   try {
     var saved = localStorage.getItem('wr_sim_cenario');
@@ -676,7 +676,7 @@ function simUp() {
   var cf = parseFloat(document.getElementById('cfix').value)||0;
   var cp = parseFloat(document.getElementById('cprod').value)||0;
 
-  // Salvar cenário no localStorage
+  // Salvar cenÃ¡rio no localStorage
   try {
     localStorage.setItem('wr_sim_cenario', JSON.stringify({
       sl3: q3, sl5: q5, sl10: q10,
@@ -748,7 +748,7 @@ document.querySelectorAll('.ov').forEach(function(ov){
   ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('on'); });
 });
 
-// ── DRILL-DOWN HELPER ─────────────────
+// â”€â”€ DRILL-DOWN HELPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showChartModal(title, orders) {
   document.getElementById('mc-title').textContent = title;
   const tbody = document.getElementById('tb-chart-details').querySelector('tbody');
@@ -772,7 +772,7 @@ function showChartModal(title, orders) {
   if (orders.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:15px">Sem pedidos listados.</td></tr>';
   } else {
-    // Injetar o header no início do modal se desejado (usando prepend num container fixo)
+    // Injetar o header no inÃ­cio do modal se desejado (usando prepend num container fixo)
     const modalBody = document.getElementById('mo-chart-details').querySelector('.modal');
     const existingHeader = modalBody.querySelector('.drill-summary');
     if(existingHeader) existingHeader.remove();
@@ -790,7 +790,7 @@ function showChartModal(title, orders) {
   openMo('mo-chart-details');
 }
 
-// ── ADMIN & CONFIG ────────────────────
+// â”€â”€ ADMIN & CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleAdminTab(tab) {
   document.getElementById('tab-adm-users').classList.remove('on');
   document.getElementById('tab-adm-logs').classList.remove('on');
@@ -837,20 +837,20 @@ async function renderAdmin() {
 }
 
 async function approveUser(id) {
-  if(!confirm('Aprovar este usuário? Ele terá acesso total ao sistema.')) return;
+  if(!confirm('Aprovar este usuÃ¡rio? Ele terÃ¡ acesso total ao sistema.')) return;
   showLoading();
   await sb.from('profiles').update({status: 'approved'}).eq('id', id);
   await renderAdmin();
 }
 
 async function suspendUser(id) {
-  if(!confirm('Suspender este usuário? Ele perderá o acesso imediatamente.')) return;
+  if(!confirm('Suspender este usuÃ¡rio? Ele perderÃ¡ o acesso imediatamente.')) return;
   showLoading();
   await sb.from('profiles').update({status: 'suspended'}).eq('id', id);
   await renderAdmin();
 }
 
-// ── CLIENTES ──────────────────────────
+// â”€â”€ CLIENTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderClientesList() {
   const tbody = document.getElementById('tb-clientes-body');
   if(!tbody) return;
@@ -861,12 +861,12 @@ function renderClientesList() {
     tbody.innerHTML = CLIENTES.map(function(c){
       return `<tr>
         <td>${c.nome}</td>
-        <td><button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="deleteCliente('${c.id}', '${c.nome}')">✕</button></td>
+        <td><button class="btn btn-sm" style="background:rgba(230,59,90,.15);color:var(--red);border:none" onclick="deleteCliente('${c.id}', '${c.nome}')">âœ•</button></td>
       </tr>`;
     }).join('');
   }
 
-  // Popular select do PDF também
+  // Popular select do PDF tambÃ©m
   const pdfCliSel = document.getElementById('pdf-cli-sel');
   if(pdfCliSel) {
     pdfCliSel.innerHTML = '<option value="todos">Todos os Clientes (Geral)</option>' + 
@@ -874,7 +874,7 @@ function renderClientesList() {
   }
 }
 
-// ── EXPORTS ───────────────────────────
+// â”€â”€ EXPORTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function exportarLogsCsv() {
   showLoading();
   const { data: logs } = await sb.from('audit_logs').select('*').order('created_at', {ascending: false});
@@ -920,7 +920,7 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
   }
 
   const monthMapping = {
-    '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho',
+    '01':'Janeiro','02':'Fevereiro','03':'MarÃ§o','04':'Abril','05':'Maio','06':'Junho',
     '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
   };
   const despesasMes = isGeral ? DESPESAS.filter(d => {
@@ -942,10 +942,10 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
 
   container.innerHTML = `
     <h1 style="color:#000; border-bottom: 2px solid #000; padding-bottom: 10px;">${tituloRelatorio}</h1>
-    <p><b>Período:</b> ${isAllMonths ? 'Geral (Todos os Meses)' : mesAtual + ' 2026'}</p>
-    <p><b>Data do Relatório:</b> ${new Date().toLocaleDateString('pt-BR')}</p>
+    <p><b>PerÃ­odo:</b> ${isAllMonths ? 'Geral (Todos os Meses)' : mesAtual + ' 2026'}</p>
+    <p><b>Data do RelatÃ³rio:</b> ${new Date().toLocaleDateString('pt-BR')}</p>
     
-    <h2 style="margin-top: 30px;">Relatório de Vendas</h2>
+    <h2 style="margin-top: 30px;">RelatÃ³rio de Vendas</h2>
     <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
       <thead>
         <tr style="background: #f0f0f0;">
@@ -966,7 +966,7 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
     </table>
 
     ${isGeral ? `
-    <h2 style="margin-top: 30px;">Relatório de Despesas</h2>
+    <h2 style="margin-top: 30px;">RelatÃ³rio de Despesas</h2>
     <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
       <thead>
         <tr style="background: #f0f0f0;">
@@ -990,7 +990,7 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
     <div style="margin-top: 40px; text-align: right; font-size: 18px;">
       <p><b>Total Vendas:</b> ${fmtR(totalVendas)}</p>
       ${isGeral ? `<p><b>Total Despesas:</b> - ${fmtR(totalDespesas)}</p>` : ''}
-      <p style="border-top: 2px solid #000; padding-top: 10px;"><b>Saldo Líquido:</b> ${fmtR(totalVendas - totalDespesas)}</p>
+      <p style="border-top: 2px solid #000; padding-top: 10px;"><b>Saldo LÃ­quido:</b> ${fmtR(totalVendas - totalDespesas)}</p>
     </div>
   `;
 
@@ -1004,6 +1004,7 @@ function gerarCaixaPDF(mesAtual, clienteAtual) {
 
   html2pdf().from(container).set(opt).save();
 }
+
 
 
 

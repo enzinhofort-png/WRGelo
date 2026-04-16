@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://kwafyajlgrpragdvnrmu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3YWZ5YWpsZ3JwcmFnZHZucm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzgwODYsImV4cCI6MjA5MTUxNDA4Nn0.64VHTEjC7yequKGK-s0qeNo7EqiqWjQM2Hs40gpjID8';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// â”€â”€ LOGO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€// ── LOGO ──â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.getElementById('tlogo').src = LOGO_B64;
 document.getElementById('hlogo').src = LOGO_B64;
 document.getElementById('authlogo').src = LOGO_B64;
@@ -348,3 +348,4 @@ async function delDesp(id) {
 // â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 initAuth();
+
