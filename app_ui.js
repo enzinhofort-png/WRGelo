@@ -320,11 +320,33 @@ function editPed(id) {
 }
 
 // ── API MUTATIONS ─────────────────────
+
+// Mapa de produto → chave de estoque
+var PROD_EST_MAP = {'3kg':'s3','5kg':'s5','10kg':'s10'};
+
+// Atualiza estoque e registra movimentação de venda
+async function _atualizaEstoqueVenda(produtoKey, qtd, tipo, data, obs) {
+  if(!produtoKey || !qtd) return;
+  const est = ESTOQUE[produtoKey] || { quantidade: 0 };
+  const novaQtd = tipo === 's'
+    ? Math.max(0, (est.quantidade || 0) - qtd)
+    : (est.quantidade || 0) + qtd;
+  await sb.from('estoque').upsert([{ produto: produtoKey, quantidade: novaQtd }], { onConflict: 'produto' });
+  await sb.from('estoque_movimentos').insert([{ data, produto: produtoKey, tipo, quantidade: qtd, observacao: obs }]);
+}
+
 async function delPed(id) {
   if(!confirm('Deletar este pedido?')) return;
+  const pedido = PEDIDOS.find(x => x.id === id);
   showLoading();
   await logAudit('pedidos', 'DELETE', { id });
   await sb.from('pedidos').delete().eq('id', id);
+  // Estorna estoque ao deletar venda
+  if(pedido) {
+    const eKey = PROD_EST_MAP[pedido.produto];
+    const hoje = new Date().toISOString().split('T')[0];
+    await _atualizaEstoqueVenda(eKey, pedido.quantidade, 'e', hoje, `Estorno: pedido deletado (${pedido.cliente})`);
+  }
   await loadData();
 }
 
@@ -359,6 +381,8 @@ async function savePed() {
     mes: mes
   };
   
+  const eKey = PROD_EST_MAP[obj.produto];
+
   showLoading();
   try {
     let res;
@@ -367,12 +391,29 @@ async function savePed() {
       obj.is_historico = original ? original.is_historico : false;
       res = await sb.from('pedidos').update(obj).eq('id', editingPedId);
       await logAudit('pedidos', 'UPDATE', { id: editingPedId, ...obj });
+      if(res.error) throw res.error;
+
+      // Ajusta estoque pela diferença ao editar
+      if(original) {
+        const origKey = PROD_EST_MAP[original.produto];
+        if(origKey !== eKey) {
+          // Produto mudou: estorna produto antigo e debita produto novo
+          await _atualizaEstoqueVenda(origKey, original.quantidade, 'e', obj.data, `Estorno edição (${obj.cliente})`);
+          await _atualizaEstoqueVenda(eKey, obj.quantidade, 's', obj.data, `Venda editada: ${obj.cliente}`);
+        } else {
+          const diff = obj.quantidade - original.quantidade;
+          if(diff > 0) await _atualizaEstoqueVenda(eKey, diff, 's', obj.data, `Ajuste venda: ${obj.cliente} (+${diff})`);
+          else if(diff < 0) await _atualizaEstoqueVenda(eKey, Math.abs(diff), 'e', obj.data, `Ajuste venda: ${obj.cliente} (${diff})`);
+        }
+      }
     } else {
       obj.is_historico = false;
       res = await sb.from('pedidos').insert([obj]);
       await logAudit('pedidos', 'INSERT', obj);
+      if(res.error) throw res.error;
+      // Debita estoque ao registrar nova venda
+      await _atualizaEstoqueVenda(eKey, obj.quantidade, 's', obj.data, `Venda: ${obj.cliente}`);
     }
-    if(res.error) throw res.error;
     closeMo('mo-ped');
     await loadData();
     editingPedId = null;
@@ -456,10 +497,11 @@ async function saveEst() {
   var t = document.getElementById('ne-t').value;
   var q = parseInt(document.getElementById('ne-q').value)||0;
   
-  var nq = ESTOQUE[p] || 0;
-  if (t === 'e') nq += q;
-  else if (t === 's') nq = Math.max(0, nq-q);
-  else nq = q;
+  var cur = (ESTOQUE[p] && ESTOQUE[p].quantidade) || 0;
+  var nq;
+  if (t === 'e') nq = cur + q;
+  else if (t === 's') nq = Math.max(0, cur - q);
+  else nq = q; // ajuste direto
 
   showLoading();
   await sb.from('estoque').upsert([{produto: p, quantidade: nq}], {onConflict: 'produto'});
